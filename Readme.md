@@ -1,21 +1,6 @@
-# Switchboard #
+# Middleman #
 
-Fully asynchronous C# 5 / .NET4.5 HTTP intermediary server. Supports SSL for inbound and outbound connections.
-
-### Potential uses
-The lib is still really early in development and it's lacking in several aspects but here's some potential _future_ use cases.
-
- * Load balancing/reverse proxy
- * Reverse proxy with cache (coupled with a good cache provider)
- * In flight message logging for web services either for temporary debugging or more permanent logging when there's zero or little control over the endpoints.
-
-### Notes/TODO ###
-
-There are CancellationTokens sprinkled throughout but they won't do any smart cancellation as of yet.
-
-No timeout support for connections which never gets around to making a request.
-
-Chunked transfer support is currently limited. It works great for streaming but there's no support for merging chunks into a coherent response. Beware.
+Asynchronous C# 5 / .NET4.5 HTTP intermediary server. Supports SSL for inbound and outbound connections.
 
 ## License ##
 
