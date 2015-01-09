@@ -5,38 +5,38 @@ using System.Text.RegularExpressions;
 namespace Switchboard.ConsoleHost.Logging
 {
     /// <summary>
-    /// Prints debug messages straight to the console. Will color a message
-    /// based on IP-address and port if it contains one.
+    ///     Prints debug messages straight to the console. Will color a message
+    ///     based on IP-address and port if it contains one.
     /// </summary>
     public class ConsoleLogger : TraceListener
     {
-        private readonly object syncRoot = new object();
-        private static Regex ipPortRe = new Regex(@"(?:[0-9]{1,3}\.){3}[0-9]{1,3}:\d{1,5}");
+        private static readonly Regex IpPortRe = new Regex(@"(?:[0-9]{1,3}\.){3}[0-9]{1,3}:\d{1,5}");
+        private readonly object _syncRoot = new object();
 
         public override void Write(string message)
         {
-            lock (syncRoot)
-                System.Console.Write(message);
+            lock (_syncRoot)
+                Console.Write(message);
         }
 
         public override void WriteLine(string message)
         {
-            var m = ipPortRe.Match(message);
+            var m = IpPortRe.Match(message);
 
             if (m.Success)
             {
-                uint h = (uint)m.Value.GetHashCode();
+                var h = (uint) m.Value.GetHashCode();
                 ConsoleColor c;
 
                 do
                 {
-                    c = (ConsoleColor)(h % 16);
+                    c = (ConsoleColor) (h%16);
                     h++;
                 } while (c == ConsoleColor.Black || c == ConsoleColor.Gray);
 
-                lock (syncRoot)
+                lock (_syncRoot)
                 {
-                    var current = System.Console.ForegroundColor;
+                    var current = Console.ForegroundColor;
                     Console.ForegroundColor = c;
                     Console.WriteLine(message);
                     Console.ForegroundColor = current;
@@ -45,9 +45,9 @@ namespace Switchboard.ConsoleHost.Logging
                 return;
             }
 
-            lock (syncRoot)
+            lock (_syncRoot)
             {
-                System.Console.WriteLine(message);
+                Console.WriteLine(message);
             }
         }
     }

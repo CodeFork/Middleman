@@ -19,138 +19,157 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
+using System.Runtime.Remoting;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Switchboard.Server.Utils
 {
     /// <summary>
-    /// An implementation of a Stream that transparently redirects all 
-    /// stream-related method calls to the supplied inner stream. Makes
-    /// it easy to implement the subset of stream functionality required
-    /// for your stream.
+    ///     An implementation of a Stream that transparently redirects all
+    ///     stream-related method calls to the supplied inner stream. Makes
+    ///     it easy to implement the subset of stream functionality required
+    ///     for your stream.
     /// </summary>
     internal abstract class RedirectingStream : Stream
     {
-        protected readonly Stream innerStream;
+        protected readonly Stream InnerStream;
 
-        public RedirectingStream(Stream innerStream)
+        protected RedirectingStream(Stream innerStream)
         {
-            this.innerStream = innerStream;
+            InnerStream = innerStream;
         }
 
-        public override bool CanRead { get { return this.innerStream.CanRead; } }
-
-        public override bool CanSeek { get { return this.innerStream.CanSeek; } }
-
-        public override bool CanWrite { get { return this.innerStream.CanWrite; } }
-
-        public override void Flush()
+        public override bool CanRead
         {
-            this.innerStream.Flush();
+            get { return InnerStream.CanRead; }
+        }
+
+        public override bool CanSeek
+        {
+            get { return InnerStream.CanSeek; }
+        }
+
+        public override bool CanWrite
+        {
+            get { return InnerStream.CanWrite; }
         }
 
         public override long Length
         {
-            get { return this.innerStream.Length; }
+            get { return InnerStream.Length; }
         }
 
         public override long Position
         {
-            get { return this.innerStream.Position; }
-            set { this.innerStream.Position = value; }
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            return this.innerStream.Read(buffer, offset, count);
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            return this.innerStream.Seek(offset, origin);
-        }
-
-        public override void SetLength(long value)
-        {
-            this.innerStream.SetLength(value);
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            this.innerStream.Write(buffer, offset, count);
-        }
-
-        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
-        {
-            return this.innerStream.BeginRead(buffer, offset, count, callback, state);
-        }
-
-        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
-        {
-            return this.innerStream.BeginWrite(buffer, offset, count, callback, state);
-        }
-
-        public override void Close()
-        {
-            this.innerStream.Close();
-        }
-
-        public override Task CopyToAsync(Stream destination, int bufferSize, System.Threading.CancellationToken cancellationToken)
-        {
-            return this.innerStream.CopyToAsync(destination, bufferSize, cancellationToken);
+            get { return InnerStream.Position; }
+            set { InnerStream.Position = value; }
         }
 
         public override bool CanTimeout
         {
-            get
-            {
-                return this.innerStream.CanTimeout;
-            }
+            get { return InnerStream.CanTimeout; }
         }
 
-        public override System.Runtime.Remoting.ObjRef CreateObjRef(Type requestedType)
+        public override int ReadTimeout
+        {
+            get { return InnerStream.ReadTimeout; }
+            set { InnerStream.ReadTimeout = value; }
+        }
+
+        public override int WriteTimeout
+        {
+            get { return InnerStream.WriteTimeout; }
+            set { InnerStream.WriteTimeout = value; }
+        }
+
+        public override void Flush()
+        {
+            InnerStream.Flush();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            return InnerStream.Read(buffer, offset, count);
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            return InnerStream.Seek(offset, origin);
+        }
+
+        public override void SetLength(long value)
+        {
+            InnerStream.SetLength(value);
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            InnerStream.Write(buffer, offset, count);
+        }
+
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback,
+            object state)
+        {
+            return InnerStream.BeginRead(buffer, offset, count, callback, state);
+        }
+
+        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback,
+            object state)
+        {
+            return InnerStream.BeginWrite(buffer, offset, count, callback, state);
+        }
+
+        public override void Close()
+        {
+            InnerStream.Close();
+        }
+
+        public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+        {
+            return InnerStream.CopyToAsync(destination, bufferSize, cancellationToken);
+        }
+
+        public override ObjRef CreateObjRef(Type requestedType)
         {
             throw new NotSupportedException();
         }
 
         [Obsolete]
-        protected override System.Threading.WaitHandle CreateWaitHandle()
+        protected override WaitHandle CreateWaitHandle()
         {
             throw new NotSupportedException();
         }
 
         protected override void Dispose(bool disposing)
         {
-            this.innerStream.Dispose();
+            InnerStream.Dispose();
         }
 
         public override int EndRead(IAsyncResult asyncResult)
         {
-            return this.innerStream.EndRead(asyncResult);
+            return InnerStream.EndRead(asyncResult);
         }
 
         public override void EndWrite(IAsyncResult asyncResult)
         {
-            this.innerStream.EndWrite(asyncResult);
+            InnerStream.EndWrite(asyncResult);
         }
 
         public override bool Equals(object obj)
         {
-            return this.innerStream.Equals(obj);
+            return InnerStream.Equals(obj);
         }
 
-        public override Task FlushAsync(System.Threading.CancellationToken cancellationToken)
+        public override Task FlushAsync(CancellationToken cancellationToken)
         {
-            return this.innerStream.FlushAsync(cancellationToken);
+            return InnerStream.FlushAsync(cancellationToken);
         }
 
         public override int GetHashCode()
         {
-            return this.innerStream.GetHashCode();
+            return InnerStream.GetHashCode();
         }
 
         public override object InitializeLifetimeService()
@@ -158,54 +177,29 @@ namespace Switchboard.Server.Utils
             throw new NotSupportedException();
         }
 
-        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken)
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            return this.innerStream.ReadAsync(buffer, offset, count, cancellationToken);
+            return InnerStream.ReadAsync(buffer, offset, count, cancellationToken);
         }
 
         public override int ReadByte()
         {
-            return this.innerStream.ReadByte();
-        }
-
-        public override int ReadTimeout
-        {
-            get
-            {
-                return this.innerStream.ReadTimeout;
-            }
-            set
-            {
-                this.innerStream.ReadTimeout = value;
-            }
+            return InnerStream.ReadByte();
         }
 
         public override string ToString()
         {
-            return this.innerStream.ToString();
+            return InnerStream.ToString();
         }
 
-        public override Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken)
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            return this.innerStream.WriteAsync(buffer, offset, count, cancellationToken);
+            return InnerStream.WriteAsync(buffer, offset, count, cancellationToken);
         }
 
         public override void WriteByte(byte value)
         {
-            this.innerStream.WriteByte(value);
+            InnerStream.WriteByte(value);
         }
-
-        public override int WriteTimeout
-        {
-            get
-            {
-                return this.innerStream.WriteTimeout;
-            }
-            set
-            {
-                this.innerStream.WriteTimeout = value;
-            }
-        }
-
     }
 }

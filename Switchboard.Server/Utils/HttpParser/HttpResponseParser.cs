@@ -6,118 +6,115 @@ using System.Text.RegularExpressions;
 namespace Switchboard.Server.Utils.HttpParser
 {
     /// <summary>
-    /// Simple and naive http response parser. No support for chunked transfers or
-    /// line folding in headers. Should probably not be used to read responses from non-friendly
-    /// servers yet.
-    /// 
-    /// TODO:
-    ///  * Proper chunked transfer support
-    ///  * Proper support for RFC tokens, adhere to the BNF
-    ///  * Hardening against maliciously crafted responses.
-    ///  * 
+    ///     Simple and naive http response parser. No support for chunked transfers or
+    ///     line folding in headers. Should probably not be used to read responses from non-friendly
+    ///     servers yet.
+    ///     TODO:
+    ///     * Proper chunked transfer support
+    ///     * Proper support for RFC tokens, adhere to the BNF
+    ///     * Hardening against maliciously crafted responses.
+    ///     *
     /// </summary>
     public class HttpResponseParser
     {
-        private bool inEntityData;
-        private bool inHeaders;
+        private static readonly Regex StatusLineRegex =
+            new Regex(@"^HTTP/(?<version>\d\.\d) (?<statusCode>\d{3}) (?<statusDescription>.*)");
 
-        private bool hasEntityData;
-
-        private bool hasStarted;
-        private bool isCompleted;
-
-        private byte[] parseBuffer;
-        private int parseBufferWritten;
-
-        private IHttpResponseHandler handler;
-
-        private int contentLength = -1;
-        private int entityDataWritten = 0;
+        private bool _chunkedTransfer;
+        private int _contentLength = -1;
+        private int _entityDataWritten;
+        private bool _hasEntityData;
+        private bool _hasStarted;
+        private bool _inEntityData;
+        private bool _inHeaders;
+        private bool _isCompleted;
+        private int _parseBufferWritten;
+        private readonly IHttpResponseHandler _handler;
+        private readonly byte[] _parseBuffer;
 
         public HttpResponseParser(IHttpResponseHandler handler)
         {
-            this.handler = handler;
-            this.parseBuffer = new byte[64 * 1024];
+            _handler = handler;
+            _parseBuffer = new byte[64*1024];
         }
 
         public void Execute(byte[] buffer, int offset, int count)
         {
-            if (isCompleted)
+            if (_isCompleted)
                 throw new InvalidOperationException("Parser is done");
 
-            if (!hasStarted)
+            if (!_hasStarted)
             {
-                inHeaders = true;
-                hasStarted = true;
+                _inHeaders = true;
+                _hasStarted = true;
 
-                this.handler.OnResponseBegin();
+                _handler.OnResponseBegin();
             }
 
-            if (!inHeaders)
+            if (!_inHeaders)
             {
-                if (!hasEntityData)
+                if (!_hasEntityData)
                 {
-                    this.isCompleted = true;
-                    this.handler.OnResponseEnd();
+                    _isCompleted = true;
+                    _handler.OnResponseEnd();
                     return;
                 }
 
-                if (!inEntityData)
+                if (!_inEntityData)
                 {
-                    inEntityData = true;
-                    handler.OnEntityStart();
+                    _inEntityData = true;
+                    _handler.OnEntityStart();
                 }
 
                 if (count > 0)
                 {
-                    this.handler.OnEntityData(buffer, offset, count);
-                    this.entityDataWritten += count;
+                    _handler.OnEntityData(buffer, offset, count);
+                    _entityDataWritten += count;
                 }
 
-                if (count == 0 || this.entityDataWritten == this.contentLength)
+                if (count == 0 || _entityDataWritten == _contentLength)
                 {
-                    inEntityData = false;
-                    isCompleted = true;
-                    this.handler.OnEntityEnd();
-                    this.handler.OnResponseEnd();
+                    _inEntityData = false;
+                    _isCompleted = true;
+                    _handler.OnEntityEnd();
+                    _handler.OnResponseEnd();
                 }
 
                 return;
             }
 
-            int bufferLeft = parseBuffer.Length - parseBufferWritten;
+            var bufferLeft = _parseBuffer.Length - _parseBufferWritten;
 
             if (bufferLeft <= 0)
                 throw new FormatException("Response headers exceeded maximum allowed length");
 
             if (count > bufferLeft)
             {
-                this.Execute(buffer, offset, bufferLeft);
-                this.Execute(buffer, offset + bufferLeft, count - bufferLeft);
+                Execute(buffer, offset, bufferLeft);
+                Execute(buffer, offset + bufferLeft, count - bufferLeft);
 
                 return;
             }
 
-            Array.Copy(buffer, offset, parseBuffer, parseBufferWritten, count);
-            parseBufferWritten += count;
+            Array.Copy(buffer, offset, _parseBuffer, _parseBufferWritten, count);
+            _parseBufferWritten += count;
 
-            int endOfHeaders = IndexOf(parseBuffer, 0, parseBufferWritten, 13, 10, 13, 10);
+            var endOfHeaders = IndexOf(_parseBuffer, 0, _parseBufferWritten, 13, 10, 13, 10);
 
             if (endOfHeaders >= 0)
             {
-                ParseHeaders(parseBuffer, 0, endOfHeaders + 4);
+                ParseHeaders(_parseBuffer, 0, endOfHeaders + 4);
 
-                this.inHeaders = false;
+                _inHeaders = false;
 
-                if (endOfHeaders + 4 < parseBufferWritten)
-                    this.Execute(parseBuffer, endOfHeaders + 4, parseBufferWritten - (endOfHeaders + 4));
+                if (endOfHeaders + 4 < _parseBufferWritten)
+                    Execute(_parseBuffer, endOfHeaders + 4, _parseBufferWritten - (endOfHeaders + 4));
                 else
                 {
-                    if (!hasEntityData)
+                    if (!_hasEntityData)
                     {
-                        this.isCompleted = true;
-                        this.handler.OnResponseEnd();
-                        return;
+                        _isCompleted = true;
+                        _handler.OnResponseEnd();
                     }
                 }
             }
@@ -135,14 +132,11 @@ namespace Switchboard.Server.Utils.HttpParser
                 while (!string.IsNullOrEmpty(line = sr.ReadLine()))
                     ParseHeaderLine(line);
 
-                this.handler.OnHeadersEnd();
+                _handler.OnHeadersEnd();
 
-                hasEntityData = this.contentLength > 0 || chunkedTransfer;
+                _hasEntityData = _contentLength > 0 || _chunkedTransfer;
             }
         }
-
-        private static Regex StatusLineRegex = new Regex(@"^HTTP/(?<version>\d\.\d) (?<statusCode>\d{3}) (?<statusDescription>.*)");
-        private bool chunkedTransfer;
 
         private void ParseStatusLine(string line)
         {
@@ -159,15 +153,15 @@ namespace Switchboard.Server.Utils.HttpParser
             if (version != "1.1" && version != "1.0")
                 throw new FormatException("Unknown http version");
 
-            int statusCode = int.Parse(m.Groups["statusCode"].Value);
-            string statusDescription = m.Groups["statusDescription"].Value;
+            var statusCode = int.Parse(m.Groups["statusCode"].Value);
+            var statusDescription = m.Groups["statusDescription"].Value;
 
-            this.handler.OnStatusLine(new Version(version), statusCode, statusDescription);
+            _handler.OnStatusLine(new Version(version), statusCode, statusDescription);
         }
 
         private void ParseHeaderLine(string line)
         {
-            var parts = line.Split(new[] { ':' }, 2);
+            var parts = line.Split(new[] {':'}, 2);
 
             if (parts.Length != 2)
                 throw new FormatException("Malformed header line");
@@ -178,23 +172,25 @@ namespace Switchboard.Server.Utils.HttpParser
             {
                 int cl;
                 if (int.TryParse(parts[1].Trim(), out cl))
-                    this.contentLength = cl;
+                    _contentLength = cl;
             }
             else if (parts[0] == "Transfer-Encoding")
             {
                 if (parts[1] == "chunked")
-                    this.chunkedTransfer = true;
+                    _chunkedTransfer = true;
             }
 
-            this.handler.OnHeader(parts[0], parts[1]);
+            _handler.OnHeader(parts[0], parts[1]);
         }
 
         private int IndexOf(byte[] buffer, int offset, int count, params byte[] elements)
         {
-            for (int i = offset; i < offset + count; i++)
+            for (var i = offset; i < offset + count; i++)
             {
-                int j = 0;
-                for (; j < elements.Length && i + j < offset + count && buffer[i + j] == elements[j]; j++) ;
+                var j = 0;
+                for (; j < elements.Length && i + j < offset + count && buffer[i + j] == elements[j]; j++)
+                {
+                }
 
                 if (j == elements.Length)
                     return i;
@@ -203,5 +199,4 @@ namespace Switchboard.Server.Utils.HttpParser
             return -1;
         }
     }
-
 }

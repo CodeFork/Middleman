@@ -5,39 +5,38 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Switchboard.Server.Connection;
+using Switchboard.Server.Context;
+using Switchboard.Server.Handlers;
 
-namespace Switchboard.Server
+namespace Switchboard.Server.Server
 {
     public class SwitchboardServer
     {
-        private ISwitchboardRequestHandler handler;
-        private TcpListener server;
-        private Task workTask;
-        private bool stopping;
-        private Timer connectivityTimer;
+        private readonly ISwitchboardRequestHandler _handler;
+        private readonly TcpListener _server;
 
         public SwitchboardServer(IPEndPoint listenEp, ISwitchboardRequestHandler handler)
         {
-            this.server = new TcpListener(listenEp);
-            this.handler = handler;
+            _server = new TcpListener(listenEp);
+            _handler = handler;
         }
 
         public void Start()
         {
-            this.server.Start();
-            this.workTask = Run(CancellationToken.None);
+            _server.Start();
+            Run(CancellationToken.None);
         }
 
-        private async Task Run(CancellationToken ct)
+        private async void Run(CancellationToken ct)
         {
             while (!ct.IsCancellationRequested)
             {
-                var client = await this.server.AcceptTcpClientAsync();
+                var client = await _server.AcceptTcpClientAsync();
 
                 var inbound = await CreateInboundConnection(client);
-                await inbound.OpenAsync();
+                await inbound.OpenAsync(ct);
 
-                Debug.WriteLine(string.Format("{0}: Connected", inbound.RemoteEndPoint));
+                Debug.WriteLine("{0}: Connected", inbound.RemoteEndPoint);
 
                 var context = new SwitchboardContext(inbound);
 
@@ -47,7 +46,7 @@ namespace Switchboard.Server
 
         protected virtual Task<InboundConnection> CreateInboundConnection(TcpClient client)
         {
-            return Task.FromResult<InboundConnection>(new InboundConnection(client));
+            return Task.FromResult(new InboundConnection(client));
         }
 
         private async void HandleSession(SwitchboardContext context)
@@ -63,34 +62,30 @@ namespace Switchboard.Server
                     if (request == null)
                         return;
 
-                    Debug.WriteLine(string.Format("{0}: Got {1} request for {2}", context.InboundConnection.RemoteEndPoint, request.Method, request.RequestUri));
+                    Debug.WriteLine("{0}: Got {1} request for {2}", context.InboundConnection.RemoteEndPoint,
+                        request.Method, request.RequestUri);
 
-                    var response = await handler.GetResponseAsync(context, request).ConfigureAwait(false);
-                    Debug.WriteLine(string.Format("{0}: Got response from handler ({1})", context.InboundConnection.RemoteEndPoint, response.StatusCode));
+                    var response = await _handler.GetResponseAsync(context, request).ConfigureAwait(false);
+                    Debug.WriteLine("{0}: Got response from handler ({1})", context.InboundConnection.RemoteEndPoint,
+                        response.StatusCode);
 
                     await context.InboundConnection.WriteResponseAsync(response).ConfigureAwait(false);
-                    Debug.WriteLine(string.Format("{0}: Wrote response to client", context.InboundConnection.RemoteEndPoint));
+                    Debug.WriteLine("{0}: Wrote response to client", context.InboundConnection.RemoteEndPoint);
 
                     if (context.OutboundConnection != null && !context.OutboundConnection.IsConnected)
                         context.Close();
-
                 } while (context.InboundConnection.IsConnected);
             }
             catch (Exception exc)
             {
-                Debug.WriteLine(string.Format("{0}: Error: {1}", context.InboundConnection.RemoteEndPoint, exc.Message));
+                Debug.WriteLine("{0}: Error: {1}", context.InboundConnection.RemoteEndPoint, exc.Message);
                 context.Close();
-                Debug.WriteLine(string.Format("{0}: Closed context", context.InboundConnection.RemoteEndPoint, exc.Message));
+                Debug.WriteLine("{0}: Closed context Error: {1}", context.InboundConnection.RemoteEndPoint, exc.Message);
             }
             finally
             {
                 context.Dispose();
             }
-        }
-
-        private Task<TcpClient> AcceptOneClient()
-        {
-            throw new NotImplementedException();
         }
     }
 }

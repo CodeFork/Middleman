@@ -4,38 +4,26 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Switchboard.Server
+namespace Switchboard.Server.Response
 {
     public class SwitchboardResponse
     {
-        private static long responseCounter;
-
-        public long ResponseId { get; private set; }
-
-        public Version ProtocolVersion { get; set; }
-
-        public string Method { get; set; }
-
-        public WebHeaderCollection Headers { get; set; }
-
-        public Uri RequestUri { get; set; }
-
-        public Stream ResponseBody { get; set; }
-
-        public bool IsResponseBuffered { get; private set; }
-
-        static SwitchboardResponse()
-        {
-        }
+        private static long _responseCounter;
 
         public SwitchboardResponse()
         {
-            this.Headers = new WebHeaderCollection();
-            this.ResponseId = Interlocked.Increment(ref responseCounter);
+            Headers = new WebHeaderCollection();
+            ResponseId = Interlocked.Increment(ref _responseCounter);
         }
 
+        public long ResponseId { get; private set; }
+        public Version ProtocolVersion { get; set; }
+        public string Method { get; set; }
+        public WebHeaderCollection Headers { get; set; }
+        public Uri RequestUri { get; set; }
+        public Stream ResponseBody { get; set; }
+        public bool IsResponseBuffered { get; private set; }
         public object StatusCode { get; set; }
-
         public object StatusDescription { get; set; }
 
         public int ContentLength
@@ -61,17 +49,17 @@ namespace Switchboard.Server
             if (IsResponseBuffered)
                 return;
 
-            if (this.ResponseBody == null)
+            if (ResponseBody == null)
                 return;
 
             var ms = new MemoryStream();
 
-            await this.ResponseBody.CopyToAsync(ms);
-            
-            this.ResponseBody = ms;
+            await ResponseBody.CopyToAsync(ms);
+
+            ResponseBody = ms;
             ms.Seek(0, SeekOrigin.Begin);
 
-            this.IsResponseBuffered = true;
+            IsResponseBuffered = true;
         }
     }
 }

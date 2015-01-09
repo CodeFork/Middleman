@@ -2,13 +2,14 @@
 using System.Diagnostics;
 using System.Net;
 using Switchboard.ConsoleHost.Logging;
-using Switchboard.Server;
+using Switchboard.Server.Server;
 
 namespace Switchboard.ConsoleHost
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        // ReSharper disable once UnusedParameter.Local
+        private static void Main(string[] args)
         {
             // Dump all debug data to the console, coloring it if possible
             Trace.Listeners.Add(new ConsoleLogger());
@@ -24,6 +25,4 @@ namespace Switchboard.ConsoleHost
             Console.ReadLine();
         }
     }
-
-
 }

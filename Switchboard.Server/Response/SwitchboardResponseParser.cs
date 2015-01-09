@@ -4,84 +4,38 @@ using System.Threading.Tasks;
 using Switchboard.Server.Utils;
 using Switchboard.Server.Utils.HttpParser;
 
-namespace Switchboard.Server
+namespace Switchboard.Server.Response
 {
     internal class SwitchboardResponseParser
     {
-        private sealed class ParseDelegate : IHttpResponseHandler
-        {
-            public bool headerComplete;
-            public SwitchboardResponse response = new SwitchboardResponse();
-            public ArraySegment<byte> responseBodyStart;
-
-            public void OnResponseBegin() { }
-
-            public void OnStatusLine(Version protocolVersion, int statusCode, string statusDescription)
-            {
-                response.ProtocolVersion = protocolVersion;
-                response.StatusCode = statusCode;
-                response.StatusDescription = statusDescription;
-            }
-
-            public void OnHeader(string name, string value)
-            {
-                response.Headers.Add(name, value);
-            }
-
-            public void OnEntityStart()
-            {
-            }
-
-            public void OnHeadersEnd()
-            {
-                this.headerComplete = true;
-            }
-
-            public void OnEntityData(byte[] buffer, int offset, int count)
-            {
-                this.responseBodyStart = new ArraySegment<byte>(buffer, offset, count);
-            }
-
-            public void OnEntityEnd()
-            {
-            }
-
-            public void OnResponseEnd()
-            {
-            }
-        }
-
-        public SwitchboardResponseParser()
-        {
-        }
-
         public async Task<SwitchboardResponse> ParseAsync(Stream stream)
         {
             var del = new ParseDelegate();
             var parser = new HttpResponseParser(del);
 
             int read;
-            byte[] buffer = new byte[8192];
+            var buffer = new byte[8192];
 
             while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
                 parser.Execute(buffer, 0, read);
 
-                if (del.headerComplete)
+                if (del.HeaderComplete)
                     break;
             }
 
-            if (!del.headerComplete)
+            if (!del.HeaderComplete)
                 throw new FormatException("Parse error in response");
 
-            var response = del.response;
-            int cl = response.ContentLength;
+            var response = del.Response;
+            var cl = response.ContentLength;
 
             if (cl > 0)
             {
-                if (del.responseBodyStart.Count > 0)
+                if (del.ResponseBodyStart.Count > 0)
                 {
-                    response.ResponseBody = new MaxReadStream(new StartAvailableStream(del.responseBodyStart, stream), cl);
+                    response.ResponseBody = new MaxReadStream(new StartAvailableStream(del.ResponseBodyStart, stream),
+                        cl);
                 }
                 else
                 {
@@ -92,29 +46,64 @@ namespace Switchboard.Server
             {
                 if (response.Headers["Connection"] == "close")
                 {
-                    if (del.responseBodyStart.Count > 0)
-                    {
-                        response.ResponseBody = new StartAvailableStream(del.responseBodyStart, stream);
-                    }
-                    else
-                    {
-                        response.ResponseBody = stream;
-                    }
+                    response.ResponseBody = del.ResponseBodyStart.Count > 0
+                        ? new StartAvailableStream(del.ResponseBodyStart, stream)
+                        : stream;
                 }
                 else
                 {
-                    if (del.responseBodyStart.Count > 0)
-                    {
-                        response.ResponseBody = new ChunkedStream(new StartAvailableStream(del.responseBodyStart, stream));
-                    }
-                    else
-                    {
-                        response.ResponseBody = new ChunkedStream(stream);
-                    }
+                    response.ResponseBody = del.ResponseBodyStart.Count > 0
+                        ? new ChunkedStream(new StartAvailableStream(del.ResponseBodyStart, stream))
+                        : new ChunkedStream(stream);
                 }
             }
 
             return response;
+        }
+
+        private sealed class ParseDelegate : IHttpResponseHandler
+        {
+            public bool HeaderComplete;
+            public ArraySegment<byte> ResponseBodyStart;
+            public readonly SwitchboardResponse Response = new SwitchboardResponse();
+
+            public void OnResponseBegin()
+            {
+            }
+
+            public void OnStatusLine(Version protocolVersion, int statusCode, string statusDescription)
+            {
+                Response.ProtocolVersion = protocolVersion;
+                Response.StatusCode = statusCode;
+                Response.StatusDescription = statusDescription;
+            }
+
+            public void OnHeader(string name, string value)
+            {
+                Response.Headers.Add(name, value);
+            }
+
+            public void OnEntityStart()
+            {
+            }
+
+            public void OnHeadersEnd()
+            {
+                HeaderComplete = true;
+            }
+
+            public void OnEntityData(byte[] buffer, int offset, int count)
+            {
+                ResponseBodyStart = new ArraySegment<byte>(buffer, offset, count);
+            }
+
+            public void OnEntityEnd()
+            {
+            }
+
+            public void OnResponseEnd()
+            {
+            }
         }
     }
 }

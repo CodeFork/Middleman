@@ -1,48 +1,49 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Net;
 using System.Net.Security;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Switchboard.Server.Connection
 {
     public class SecureOutboundConnection : OutboundConnection
     {
-        public string TargetHost { get; set; }
-        protected SslStream SslStream { get; private set; }
-        public override bool IsSecure { get { return true; } }
-
         public SecureOutboundConnection(string targetHost, IPEndPoint ep)
             : base(ep)
         {
-            this.TargetHost = targetHost;
+            TargetHost = targetHost;
         }
 
-        public override async Task OpenAsync(System.Threading.CancellationToken ct)
+        public string TargetHost { get; set; }
+        protected SslStream SslStream { get; private set; }
+
+        public override bool IsSecure
+        {
+            get { return true; }
+        }
+
+        public override async Task OpenAsync(CancellationToken ct)
         {
             await base.OpenAsync(ct);
 
-            this.SslStream = CreateSslStream(base.networkStream);
+            SslStream = CreateSslStream(NetworkStream);
 
-            await this.SslStream.AuthenticateAsClientAsync(this.TargetHost);
+            await SslStream.AuthenticateAsClientAsync(TargetHost);
         }
 
         protected virtual SslStream CreateSslStream(Stream innerStream)
         {
-            return new SslStream(base.networkStream, leaveInnerStreamOpen: true);
+            return new SslStream(NetworkStream, true);
         }
 
         protected override Stream GetWriteStream()
         {
-            return this.SslStream;
+            return SslStream;
         }
 
         protected override Stream GetReadStream()
         {
-            return this.SslStream;
+            return SslStream;
         }
     }
 }

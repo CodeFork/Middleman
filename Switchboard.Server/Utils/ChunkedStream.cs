@@ -7,30 +7,40 @@ namespace Switchboard.Server.Utils
 {
     internal class ChunkedStream : Stream
     {
-        private Stream innerStream;
-        private bool inChunkHeader = true;
-        private int chunkHeaderPosition;
-        private bool inChunkHeaderLength = true;
-        private int chunkLength;
-        private int chunkRead;
-        private bool done;
-        private bool inChunkTrailingCrLf;
-        private int chunkTrailingCrLfPosition;
-        private bool inChunk;
-
-        private int chunkLeft { get { return chunkLength - chunkRead; } }
-
-        public override bool CanRead { get { return !this.done; } }
-        public override bool CanSeek { get { return false; } }
-        public override bool CanWrite { get { return false; } }
+        private int _chunkHeaderPosition;
+        private int _chunkLength;
+        private int _chunkRead;
+        private int _chunkTrailingCrLfPosition;
+        private bool _done;
+        private bool _inChunk;
+        private bool _inChunkHeader = true;
+        private bool _inChunkHeaderLength = true;
+        private bool _inChunkTrailingCrLf;
+        private readonly Stream _innerStream;
 
         public ChunkedStream(Stream innerStream)
         {
-            this.innerStream = innerStream;
+            _innerStream = innerStream;
         }
 
-        public override void Flush()
+        private int ChunkLeft
         {
+            get { return _chunkLength - _chunkRead; }
+        }
+
+        public override bool CanRead
+        {
+            get { return !_done; }
+        }
+
+        public override bool CanSeek
+        {
+            get { return false; }
+        }
+
+        public override bool CanWrite
+        {
+            get { return false; }
         }
 
         public override long Length
@@ -44,12 +54,17 @@ namespace Switchboard.Server.Utils
             set { throw new NotImplementedException(); }
         }
 
+        public override void Flush()
+        {
+        }
+
         public override int Read(byte[] buffer, int offset, int count)
         {
             throw new NotImplementedException();
         }
 
-        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback,
+            object state)
         {
             throw new NotImplementedException();
         }
@@ -59,37 +74,38 @@ namespace Switchboard.Server.Utils
             throw new NotImplementedException();
         }
 
-        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
+            CancellationToken cancellationToken)
         {
-            if (this.done)
+            if (_done)
                 return 0;
 
             count = Math.Min(OptimizeCount(count), count);
 
-            int read = await this.innerStream.ReadAsync(buffer, offset, count, cancellationToken);
+            var read = await _innerStream.ReadAsync(buffer, offset, count, cancellationToken);
 
-            this.Execute(buffer, offset, read);
+            Execute(buffer, offset, read);
 
             return read;
         }
 
         private int OptimizeCount(int count)
         {
-            if (!inChunkHeader)
+            if (!_inChunkHeader)
             {
-                if (count > chunkLeft + 2)
-                    count = chunkLeft + 2;
+                if (count > ChunkLeft + 2)
+                    count = ChunkLeft + 2;
             }
             else
             {
-                if (chunkHeaderPosition == 0)
+                if (_chunkHeaderPosition == 0)
                     count = 3;
                 else
                 {
-                    if (inChunkHeaderLength)
+                    if (_inChunkHeaderLength)
                         count = 2;
                     else
-                        count = chunkLength + 3;
+                        count = _chunkLength + 3;
                 }
             }
             return count;
@@ -97,76 +113,75 @@ namespace Switchboard.Server.Utils
 
         private void Execute(byte[] buffer, int offset, int count)
         {
-            for (int i = offset; i < offset + count; i++)
+            for (var i = offset; i < offset + count; i++)
             {
-                if (this.done)
+                if (_done)
                     break;
 
-                byte b = buffer[i];
+                var b = buffer[i];
 
-                if (this.inChunkHeader)
+                if (_inChunkHeader)
                 {
                     for (; i < offset + count; i++)
                     {
                         b = buffer[i];
 
-                        if (this.inChunkHeaderLength)
+                        if (_inChunkHeaderLength)
                         {
                             if (b == 13)
-                                this.inChunkHeaderLength = false;
+                                _inChunkHeaderLength = false;
                             else
-                                this.chunkLength = (this.chunkLength << 4) + FromHex(b);
-                            
-                            this.chunkHeaderPosition++;
+                                _chunkLength = (_chunkLength << 4) + FromHex(b);
+
+                            _chunkHeaderPosition++;
                         }
                         else
                         {
                             if (b != 10)
                                 throw new FormatException("Malformed chunk header");
 
-                            this.inChunkHeader = false;
-                            this.inChunk = true;
-                            this.chunkHeaderPosition = 0;
+                            _inChunkHeader = false;
+                            _inChunk = true;
+                            _chunkHeaderPosition = 0;
 
                             break;
                         }
                     }
                 }
-                else if (this.inChunkTrailingCrLf)
+                else if (_inChunkTrailingCrLf)
                 {
-                    if (this.chunkTrailingCrLfPosition == 0 && b != 13 || this.chunkTrailingCrLfPosition == 1 && b != 10)
+                    if (_chunkTrailingCrLfPosition == 0 && b != 13 || _chunkTrailingCrLfPosition == 1 && b != 10)
                         throw new FormatException("Malformed chunk header");
 
-                    if (this.chunkTrailingCrLfPosition == 1)
+                    if (_chunkTrailingCrLfPosition == 1)
                     {
-                        this.inChunkTrailingCrLf = false;
-                        this.chunkTrailingCrLfPosition = 0;
+                        _inChunkTrailingCrLf = false;
+                        _chunkTrailingCrLfPosition = 0;
 
-                        this.inChunkHeader = true;
-                        this.inChunkHeaderLength = true;
+                        _inChunkHeader = true;
+                        _inChunkHeaderLength = true;
 
-                        if (chunkLength == 0)
-                            this.done = true;
+                        if (_chunkLength == 0)
+                            _done = true;
 
-                        this.chunkLength = 0;
+                        _chunkLength = 0;
                     }
                     else
                     {
-                        this.chunkTrailingCrLfPosition++;
+                        _chunkTrailingCrLfPosition++;
                     }
-
                 }
-                else if (this.inChunk)
+                else if (_inChunk)
                 {
                     for (; i < offset + count; i++)
                     {
-                        this.chunkRead++;
+                        _chunkRead++;
 
-                        if (chunkRead == this.chunkLength)
+                        if (_chunkRead == _chunkLength)
                         {
-                            this.inChunk = false;
-                            this.inChunkTrailingCrLf = true;
-                            this.chunkRead = 0;
+                            _inChunk = false;
+                            _inChunkTrailingCrLf = true;
+                            _chunkRead = 0;
                             break;
                         }
                     }

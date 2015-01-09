@@ -4,22 +4,23 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Switchboard.Server
+namespace Switchboard.Server.Request
 {
     public class SwitchboardRequest
     {
-        private static long requestCounter;
+        private static long _requestCounter;
+
+        public SwitchboardRequest()
+        {
+            Headers = new WebHeaderCollection();
+            RequestId = Interlocked.Increment(ref _requestCounter);
+        }
 
         public long RequestId { get; private set; }
-
         public Version ProtocolVersion { get; set; }
-
         public string Method { get; set; }
-
         public WebHeaderCollection Headers { get; set; }
-
         public string RequestUri { get; set; }
-
         public Stream RequestBody { get; set; }
         public bool IsRequestBuffered { get; private set; }
 
@@ -41,22 +42,15 @@ namespace Switchboard.Server
             }
         }
 
-        public SwitchboardRequest()
-        {
-            this.Headers = new WebHeaderCollection();
-            this.RequestId = Interlocked.Increment(ref requestCounter);
-        }
-
         public async Task CloseAsync()
         {
-            if (this.ContentLength > 0 && this.RequestBody != null && this.RequestBody.CanRead)
+            if (ContentLength > 0 && RequestBody != null && RequestBody.CanRead)
             {
                 var buf = new byte[8192];
 
-                int c;
-
-                while ((c = await this.RequestBody.ReadAsync(buf, 0, buf.Length).ConfigureAwait(false)) > 0)
-                    continue;
+                while ((await RequestBody.ReadAsync(buf, 0, buf.Length).ConfigureAwait(false)) > 0)
+                {
+                }
             }
         }
 
@@ -65,18 +59,17 @@ namespace Switchboard.Server
             if (IsRequestBuffered)
                 return;
 
-            if (this.RequestBody == null)
+            if (RequestBody == null)
                 return;
 
             var ms = new MemoryStream();
 
-            await this.RequestBody.CopyToAsync(ms);
+            await RequestBody.CopyToAsync(ms);
 
-            this.RequestBody = ms;
+            RequestBody = ms;
             ms.Seek(0, SeekOrigin.Begin);
 
-            this.IsRequestBuffered = true;
+            IsRequestBuffered = true;
         }
-
     }
 }

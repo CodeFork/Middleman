@@ -37,11 +37,6 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Connection\OutboundConnection.cs" />
@@ -52,7 +47,6 @@
     <Compile Include="Response\SwitchboardResponseParser.cs" />
     <Compile Include="Response\SwitchboardResponse.cs" />
     <Compile Include="Connection\SwitchboardConnection.cs" />
-    <Compile Include="Extensions\TaskExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Server\SecureSwitchboardServer.cs" />
     <Compile Include="Context\SwitchboardContext.cs" />

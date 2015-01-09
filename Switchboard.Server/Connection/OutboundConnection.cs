@@ -1,33 +1,36 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
+﻿using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Switchboard.Server.Request;
+using Switchboard.Server.Response;
 
 namespace Switchboard.Server.Connection
 {
     public class OutboundConnection : SwitchboardConnection
     {
-        protected static readonly Encoding headerEncoding = Encoding.GetEncoding("us-ascii");
-
-        public IPEndPoint RemoteEndPoint { get; private set; }
-        public override bool IsSecure { get { return false; } }
-
-        public bool IsConnected
-        {
-            get { return connection.Connected; }
-        }
-
-        protected TcpClient connection;
-        protected NetworkStream networkStream;
+        protected static readonly Encoding HeaderEncoding = Encoding.GetEncoding("us-ascii");
+        protected TcpClient Connection;
+        protected NetworkStream NetworkStream;
 
         public OutboundConnection(IPEndPoint endPoint)
         {
-            this.RemoteEndPoint = endPoint;
-            this.connection = new TcpClient();
+            RemoteEndPoint = endPoint;
+            Connection = new TcpClient();
+        }
+
+        public IPEndPoint RemoteEndPoint { get; private set; }
+
+        public override bool IsSecure
+        {
+            get { return false; }
+        }
+
+        public bool IsConnected
+        {
+            get { return Connection.Connected; }
         }
 
         public Task OpenAsync()
@@ -39,9 +42,9 @@ namespace Switchboard.Server.Connection
         {
             ct.ThrowIfCancellationRequested();
 
-            await this.connection.ConnectAsync(this.RemoteEndPoint.Address, this.RemoteEndPoint.Port);
+            await Connection.ConnectAsync(RemoteEndPoint.Address, RemoteEndPoint.Port);
 
-            this.networkStream = this.connection.GetStream();
+            NetworkStream = Connection.GetStream();
         }
 
         public Task WriteRequestAsync(SwitchboardRequest request)
@@ -51,52 +54,51 @@ namespace Switchboard.Server.Connection
 
         public async Task WriteRequestAsync(SwitchboardRequest request, CancellationToken ct)
         {
-            var writeStream = this.GetWriteStream();
+            var writeStream = GetWriteStream();
 
             var ms = new MemoryStream();
-            var sw = new StreamWriter(ms, headerEncoding);
+            var sw = new StreamWriter(ms, HeaderEncoding) {NewLine = "\r\n"};
 
-            sw.NewLine = "\r\n";
             sw.WriteLine("{0} {1} HTTP/1.{2}", request.Method, request.RequestUri, request.ProtocolVersion.Minor);
 
-            for (int i = 0; i < request.Headers.Count; i++)
+            for (var i = 0; i < request.Headers.Count; i++)
                 sw.WriteLine("{0}: {1}", request.Headers.GetKey(i), request.Headers.Get(i));
 
             sw.WriteLine();
             sw.Flush();
 
-            await writeStream.WriteAsync(ms.GetBuffer(), 0, (int)ms.Length)
-                .ConfigureAwait(continueOnCapturedContext: false);
+            await writeStream.WriteAsync(ms.GetBuffer(), 0, (int) ms.Length, ct)
+                .ConfigureAwait(false);
 
             if (request.RequestBody != null)
             {
                 await request.RequestBody.CopyToAsync(writeStream)
-                    .ConfigureAwait(continueOnCapturedContext: false);
+                    .ConfigureAwait(false);
             }
 
-            await writeStream.FlushAsync()
-                .ConfigureAwait(continueOnCapturedContext: false);
+            await writeStream.FlushAsync(ct)
+                .ConfigureAwait(false);
         }
 
         protected virtual Stream GetWriteStream()
         {
-            return this.networkStream;
+            return NetworkStream;
         }
 
         protected virtual Stream GetReadStream()
         {
-            return this.networkStream;
+            return NetworkStream;
         }
 
         public Task<SwitchboardResponse> ReadResponseAsync()
         {
             var parser = new SwitchboardResponseParser();
-            return parser.ParseAsync(this.GetReadStream());
+            return parser.ParseAsync(GetReadStream());
         }
 
         public void Close()
         {
-            connection.Close();
+            Connection.Close();
         }
     }
 }

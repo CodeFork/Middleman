@@ -6,33 +6,38 @@ using System.Threading.Tasks;
 namespace Switchboard.Server.Utils
 {
     /// <summary>
-    /// Simple wrapping stream which prevents reading more than the specified maximum length.
-    /// Also prevents seeking. Support sync and async reads.
+    ///     Simple wrapping stream which prevents reading more than the specified maximum length.
+    ///     Also prevents seeking. Support sync and async reads.
     /// </summary>
     internal class MaxReadStream : RedirectingStream
     {
-        private class EmptyAsyncResult : IAsyncResult
-        {
-            public object AsyncState { get; set; }
-            public WaitHandle AsyncWaitHandle { get; set; }
-            public bool CompletedSynchronously { get { return true; } }
-            public bool IsCompleted { get { return true; } }
-        }
-
-        int read = 0;
-        int maxLength;
-
-        private int Left { get { return maxLength - read; } }
+        private int _read;
+        private readonly int _maxLength;
 
         public MaxReadStream(Stream innerStream, int maxLength)
             : base(innerStream)
         {
-            this.maxLength = maxLength;
+            _maxLength = maxLength;
+        }
+
+        private int Left
+        {
+            get { return _maxLength - _read; }
+        }
+
+        public override bool CanRead
+        {
+            get { return Left > 0; }
+        }
+
+        public override bool CanSeek
+        {
+            get { return false; }
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            int left = this.Left;
+            var left = Left;
 
             if (left <= 0)
                 return 0;
@@ -40,21 +45,20 @@ namespace Switchboard.Server.Utils
             if (count > left)
                 count = left;
 
-            int c = base.Read(buffer, offset, count);
-            read += c;
+            var c = base.Read(buffer, offset, count);
+            _read += c;
 
             return c;
         }
 
-        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback,
+            object state)
         {
-            int left = this.Left;
+            var left = Left;
 
             if (left <= 0)
             {
-                var ar = new EmptyAsyncResult();
-                ar.AsyncState = state;
-                ar.AsyncWaitHandle = new ManualResetEvent(true);
+                var ar = new EmptyAsyncResult {AsyncState = state, AsyncWaitHandle = new ManualResetEvent(true)};
 
                 callback(ar);
                 return ar;
@@ -66,9 +70,10 @@ namespace Switchboard.Server.Utils
             return base.BeginRead(buffer, offset, count, callback, state);
         }
 
-        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
+            CancellationToken cancellationToken)
         {
-            int left = this.Left;
+            var left = Left;
 
             if (left <= 0)
                 return 0;
@@ -76,33 +81,24 @@ namespace Switchboard.Server.Utils
             if (count > left)
                 count = left;
 
-            int c = await base.ReadAsync(buffer, offset, count, cancellationToken);
+            var c = await base.ReadAsync(buffer, offset, count, cancellationToken);
 
-            this.read += c;
+            _read += c;
 
             return c;
         }
 
         public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
         {
-            byte[] buffer = new byte[bufferSize];
+            var buffer = new byte[bufferSize];
 
             int c;
 
-            while ((c = await this.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            while ((c = await ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await destination.WriteAsync(buffer, 0, c);
+                await destination.WriteAsync(buffer, 0, c, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-            }
-
-        }
-
-        public override bool CanRead
-        {
-            get
-            {
-                return this.Left > 0;
             }
         }
 
@@ -111,8 +107,8 @@ namespace Switchboard.Server.Utils
             if (asyncResult is EmptyAsyncResult)
                 return 0;
 
-            int c = base.EndRead(asyncResult);
-            read += c;
+            var c = base.EndRead(asyncResult);
+            _read += c;
 
             return c;
         }
@@ -121,26 +117,31 @@ namespace Switchboard.Server.Utils
         {
             if (Left > 0)
             {
-                read++;
+                _read++;
                 return base.ReadByte();
             }
-            else
-            {
-                throw new EndOfStreamException();
-            }
-        }
-
-        public override bool CanSeek
-        {
-            get
-            {
-                return false;
-            }
+            throw new EndOfStreamException();
         }
 
         public override long Seek(long offset, SeekOrigin origin)
         {
             throw new NotSupportedException();
+        }
+
+        private class EmptyAsyncResult : IAsyncResult
+        {
+            public object AsyncState { get; set; }
+            public WaitHandle AsyncWaitHandle { get; set; }
+
+            public bool CompletedSynchronously
+            {
+                get { return true; }
+            }
+
+            public bool IsCompleted
+            {
+                get { return true; }
+            }
         }
     }
 }

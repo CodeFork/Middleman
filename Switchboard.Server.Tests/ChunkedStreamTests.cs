@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Switchboard.Server.Utils;
 
@@ -12,8 +11,7 @@ namespace Switchboard.Server.Tests
         public void TestMethod1()
         {
             var ms = new MemoryStream();
-            var sw = new StreamWriter(ms);
-            sw.NewLine = "\r\n";
+            var sw = new StreamWriter(ms) { NewLine = "\r\n" };
 
             var sizes = new[] { 10, 30, 10, 100, 20 };
 

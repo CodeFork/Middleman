@@ -1,49 +1,51 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Switchboard.Server.Connection
 {
     public class SecureInboundConnection : InboundConnection
     {
-        private X509Certificate certificate;
-        protected SslStream SslStream { get; private set; }
-        public override bool IsSecure { get { return true; } }
+        private readonly X509Certificate _certificate;
 
         public SecureInboundConnection(TcpClient client, X509Certificate certificate)
             : base(client)
         {
-            this.certificate = certificate;
+            _certificate = certificate;
         }
 
-        public override async Task OpenAsync(System.Threading.CancellationToken ct)
+        protected SslStream SslStream { get; private set; }
+
+        public override bool IsSecure
+        {
+            get { return true; }
+        }
+
+        public override async Task OpenAsync(CancellationToken ct)
         {
             await base.OpenAsync(ct);
 
-            this.SslStream = CreateSslStream(base.networkStream);
+            SslStream = CreateSslStream(NetworkStream);
 
-            await this.SslStream.AuthenticateAsServerAsync(certificate);
+            await SslStream.AuthenticateAsServerAsync(_certificate);
         }
 
         protected virtual SslStream CreateSslStream(Stream innerStream)
         {
-            return new SslStream(base.networkStream, leaveInnerStreamOpen: true);
+            return new SslStream(NetworkStream, true);
         }
 
         protected override Stream GetWriteStream()
         {
-            return this.SslStream;
+            return SslStream;
         }
 
         protected override Stream GetReadStream()
         {
-            return this.SslStream;
+            return SslStream;
         }
     }
 }
