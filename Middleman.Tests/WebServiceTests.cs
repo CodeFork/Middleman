@@ -28,17 +28,17 @@ namespace Middleman.Tests
             string projDir = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory.Parent.Parent.FullName;
             string webroot = Path.Combine(projDir, "Websites");
 
-            //using (var iis = new IISExpress(new Parameters
-            //{
-            //    Path = webroot,
-            //    Port = 5566
-            //}))
-            //{
+            using (var iis = new IISExpress(new Parameters
+            {
+                Path = webroot,
+                Port = 5566
+            }))
+            {
 
 
                 var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 6655);
-                //var handler = new SimpleReverseProxyHandler("http://localhost:5566/");
-                var handler = new SimpleReverseProxyHandler("http://localhost:56934/");
+                var handler = new SimpleReverseProxyHandler("http://localhost:5566/");
+                //var handler = new SimpleReverseProxyHandler("http://localhost:56934/");
                 var server = new MiddlemanServer(endPoint, handler);
 
                 server.Start();
@@ -56,7 +56,7 @@ namespace Middleman.Tests
                         Assert.IsFalse(args.Cancelled);
                         Assert.IsNotNull(args.Result);
 
-                        var w = (ManualResetEvent) args.UserState;
+                        var w = (ManualResetEvent)args.UserState;
                         w.Set();
                     };
 
@@ -67,7 +67,7 @@ namespace Middleman.Tests
                         Assert.Fail("No response was received after 5 seconds.");
                     }
                 }
-            //}
+            }
         }
 
         //[TestMethod]
