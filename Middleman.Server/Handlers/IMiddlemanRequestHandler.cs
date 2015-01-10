@@ -5,8 +5,8 @@ using Middleman.Server.Response;
 
 namespace Middleman.Server.Handlers
 {
-    public interface ISwitchboardRequestHandler
+    public interface IMiddlemanRequestHandler
     {
-        Task<SwitchboardResponse> GetResponseAsync(SwitchboardContext context, SwitchboardRequest request);
+        Task<MiddlemanResponse> GetResponseAsync(MiddlemanContext context, MiddlemanRequest request);
     }
 }

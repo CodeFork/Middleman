@@ -11,7 +11,7 @@ using Middleman.Server.Utils;
 
 namespace Middleman.Server.Connection
 {
-    public class InboundConnection : SwitchboardConnection
+    public class InboundConnection : MiddlemanConnection
     {
         private static long _connectionCounter;
         protected static readonly Encoding HeaderEncoding = Encoding.GetEncoding("us-ascii");
@@ -73,25 +73,25 @@ namespace Middleman.Server.Connection
             return NetworkStream;
         }
 
-        public Task<SwitchboardRequest> ReadRequestAsync()
+        public Task<MiddlemanRequest> ReadRequestAsync()
         {
             return ReadRequestAsync(CancellationToken.None);
         }
 
-        public Task<SwitchboardRequest> ReadRequestAsync(CancellationToken ct)
+        public Task<MiddlemanRequest> ReadRequestAsync(CancellationToken ct)
         {
-            var requestParser = new SwitchboardRequestParser();
+            var requestParser = new MiddlemanRequestParser();
 
             return requestParser.ParseAsync(this, GetReadStream());
         }
 
-        public async Task WriteResponseAsync(SwitchboardResponse response)
+        public async Task WriteResponseAsync(MiddlemanResponse response)
         {
             await WriteResponseAsync(response, CancellationToken.None)
                 .ConfigureAwait(false);
         }
 
-        public async Task WriteResponseAsync(SwitchboardResponse response, CancellationToken ct)
+        public async Task WriteResponseAsync(MiddlemanResponse response, CancellationToken ct)
         {
             var ms = new MemoryStream();
             var sw = new StreamWriter(ms, HeaderEncoding) {NewLine = "\r\n"};

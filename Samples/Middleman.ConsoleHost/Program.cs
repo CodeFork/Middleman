@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Net;
 using Middleman.ConsoleHost.Logging;
+using Middleman.Server.Handlers;
 using Middleman.Server.Server;
 
 namespace Middleman.ConsoleHost
@@ -16,7 +17,7 @@ namespace Middleman.ConsoleHost
 
             var endPoint = new IPEndPoint(IPAddress.Loopback, 8080);
             var handler = new SimpleReverseProxyHandler("http://www.nytimes.com");
-            var server = new SwitchboardServer(endPoint, handler);
+            var server = new MiddlemanServer(endPoint, handler);
 
             server.Start();
 

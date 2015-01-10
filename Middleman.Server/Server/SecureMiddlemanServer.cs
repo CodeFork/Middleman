@@ -7,11 +7,11 @@ using Middleman.Server.Handlers;
 
 namespace Middleman.Server.Server
 {
-    public class SecureSwitchboardServer : SwitchboardServer
+    public class SecureMiddlemanServer : MiddlemanServer
     {
         private readonly X509Certificate _certificate;
 
-        public SecureSwitchboardServer(IPEndPoint endPoint, ISwitchboardRequestHandler handler,
+        public SecureMiddlemanServer(IPEndPoint endPoint, IMiddlemanRequestHandler handler,
             X509Certificate certificate)
             : base(endPoint, handler)
         {

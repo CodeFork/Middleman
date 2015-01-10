@@ -10,12 +10,12 @@ using Middleman.Server.Handlers;
 
 namespace Middleman.Server.Server
 {
-    public class SwitchboardServer
+    public class MiddlemanServer
     {
-        private readonly ISwitchboardRequestHandler _handler;
+        private readonly IMiddlemanRequestHandler _handler;
         private readonly TcpListener _server;
 
-        public SwitchboardServer(IPEndPoint listenEp, ISwitchboardRequestHandler handler)
+        public MiddlemanServer(IPEndPoint listenEp, IMiddlemanRequestHandler handler)
         {
             _server = new TcpListener(listenEp);
             _handler = handler;
@@ -38,7 +38,7 @@ namespace Middleman.Server.Server
 
                 Debug.WriteLine("{0}: Connected", inbound.RemoteEndPoint);
 
-                var context = new SwitchboardContext(inbound);
+                var context = new MiddlemanContext(inbound);
 
                 HandleSession(context);
             }
@@ -49,7 +49,7 @@ namespace Middleman.Server.Server
             return Task.FromResult(new InboundConnection(client));
         }
 
-        private async void HandleSession(SwitchboardContext context)
+        private async void HandleSession(MiddlemanContext context)
         {
             try
             {

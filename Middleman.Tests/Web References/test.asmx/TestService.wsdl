@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://localhost/" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tm="http://microsoft.com/wsdl/mime/textMatching/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" targetNamespace="http://localhost/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://localhost/">
+      <s:element name="SimpleMethod">
+        <s:complexType />
+      </s:element>
+      <s:element name="SimpleMethodResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="SimpleMethodResult" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+    </s:schema>
+  </wsdl:types>
+  <wsdl:message name="SimpleMethodSoapIn">
+    <wsdl:part name="parameters" element="tns:SimpleMethod" />
+  </wsdl:message>
+  <wsdl:message name="SimpleMethodSoapOut">
+    <wsdl:part name="parameters" element="tns:SimpleMethodResponse" />
+  </wsdl:message>
+  <wsdl:portType name="TestServiceSoap">
+    <wsdl:operation name="SimpleMethod">
+      <wsdl:input message="tns:SimpleMethodSoapIn" />
+      <wsdl:output message="tns:SimpleMethodSoapOut" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="TestServiceSoap" type="tns:TestServiceSoap">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="SimpleMethod">
+      <soap:operation soapAction="http://localhost/SimpleMethod" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="TestServiceSoap12" type="tns:TestServiceSoap">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="SimpleMethod">
+      <soap12:operation soapAction="http://localhost/SimpleMethod" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="TestService">
+    <wsdl:port name="TestServiceSoap" binding="tns:TestServiceSoap">
+      <soap:address location="http://localhost:56934/TestService.asmx" />
+    </wsdl:port>
+    <wsdl:port name="TestServiceSoap12" binding="tns:TestServiceSoap12">
+      <soap12:address location="http://localhost:56934/TestService.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

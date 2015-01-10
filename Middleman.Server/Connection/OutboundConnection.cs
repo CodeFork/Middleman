@@ -9,7 +9,7 @@ using Middleman.Server.Response;
 
 namespace Middleman.Server.Connection
 {
-    public class OutboundConnection : SwitchboardConnection
+    public class OutboundConnection : MiddlemanConnection
     {
         protected static readonly Encoding HeaderEncoding = Encoding.GetEncoding("us-ascii");
         protected TcpClient Connection;
@@ -47,12 +47,12 @@ namespace Middleman.Server.Connection
             NetworkStream = Connection.GetStream();
         }
 
-        public Task WriteRequestAsync(SwitchboardRequest request)
+        public Task WriteRequestAsync(MiddlemanRequest request)
         {
             return WriteRequestAsync(request, CancellationToken.None);
         }
 
-        public async Task WriteRequestAsync(SwitchboardRequest request, CancellationToken ct)
+        public async Task WriteRequestAsync(MiddlemanRequest request, CancellationToken ct)
         {
             var writeStream = GetWriteStream();
 
@@ -90,9 +90,9 @@ namespace Middleman.Server.Connection
             return NetworkStream;
         }
 
-        public Task<SwitchboardResponse> ReadResponseAsync()
+        public Task<MiddlemanResponse> ReadResponseAsync()
         {
-            var parser = new SwitchboardResponseParser();
+            var parser = new MiddlemanResponseParser();
             return parser.ParseAsync(GetReadStream());
         }
 

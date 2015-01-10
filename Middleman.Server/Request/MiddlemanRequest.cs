@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace Middleman.Server.Request
 {
-    public class SwitchboardRequest
+    public class MiddlemanRequest
     {
         private static long _requestCounter;
 
-        public SwitchboardRequest()
+        public MiddlemanRequest()
         {
             Headers = new WebHeaderCollection();
             RequestId = Interlocked.Increment(ref _requestCounter);

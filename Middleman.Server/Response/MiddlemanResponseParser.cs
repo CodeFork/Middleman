@@ -6,9 +6,9 @@ using Middleman.Server.Utils.HttpParser;
 
 namespace Middleman.Server.Response
 {
-    internal class SwitchboardResponseParser
+    internal class MiddlemanResponseParser
     {
-        public async Task<SwitchboardResponse> ParseAsync(Stream stream)
+        public async Task<MiddlemanResponse> ParseAsync(Stream stream)
         {
             var del = new ParseDelegate();
             var parser = new HttpResponseParser(del);
@@ -65,7 +65,7 @@ namespace Middleman.Server.Response
         {
             public bool HeaderComplete;
             public ArraySegment<byte> ResponseBodyStart;
-            public readonly SwitchboardResponse Response = new SwitchboardResponse();
+            public readonly MiddlemanResponse Response = new MiddlemanResponse();
 
             public void OnResponseBegin()
             {

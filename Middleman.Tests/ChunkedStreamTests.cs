@@ -11,9 +11,9 @@ namespace Middleman.Tests
         public void TestMethod1()
         {
             var ms = new MemoryStream();
-            var sw = new StreamWriter(ms) { NewLine = "\r\n" };
+            var sw = new StreamWriter(ms) {NewLine = "\r\n"};
 
-            var sizes = new[] { 10, 30, 10, 100, 20 };
+            var sizes = new[] {10, 30, 10, 100, 20};
 
             foreach (var size in sizes)
             {
@@ -34,7 +34,7 @@ namespace Middleman.Tests
             var buf1 = ms.ToArray();
             var buf2 = ms2.ToArray();
 
-            for (int i = 0; i < ms.Length; i++)
+            for (var i = 0; i < ms.Length; i++)
                 Assert.AreEqual(buf1[i], buf2[i]);
         }
     }

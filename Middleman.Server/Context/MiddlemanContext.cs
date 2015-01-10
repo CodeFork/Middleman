@@ -7,11 +7,11 @@ using Middleman.Server.Connection;
 
 namespace Middleman.Server.Context
 {
-    public class SwitchboardContext
+    public class MiddlemanContext
     {
         private static long _contextCounter;
 
-        public SwitchboardContext(InboundConnection client)
+        public MiddlemanContext(InboundConnection client)
         {
             InboundConnection = client;
             ContextId = Interlocked.Increment(ref _contextCounter);

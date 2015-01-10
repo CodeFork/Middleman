@@ -1,19 +1,19 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Middleman.Server.Context;
-using Middleman.Server.Handlers;
 using Middleman.Server.Request;
 using Middleman.Server.Response;
 
-namespace Middleman.ConsoleHost
+namespace Middleman.Server.Handlers
 {
     /// <summary>
     ///     Sample implementation of a reverse proxy. Streams requests and responses (no buffering).
     ///     No support for location header rewriting.
     /// </summary>
-    public class SimpleReverseProxyHandler : ISwitchboardRequestHandler
+    public class SimpleReverseProxyHandler : IMiddlemanRequestHandler
     {
         private readonly Uri _backendUri;
 
@@ -27,13 +27,15 @@ namespace Middleman.ConsoleHost
             _backendUri = backendUri;
 
             RewriteHost = true;
-            AddForwardedForHeader = true;
+            AddForwardedForHeader = false;
+            RemoveExpectHeader = true;
         }
 
         public bool RewriteHost { get; set; }
         public bool AddForwardedForHeader { get; set; }
+        public bool RemoveExpectHeader { get; set; }
 
-        public async Task<SwitchboardResponse> GetResponseAsync(SwitchboardContext context, SwitchboardRequest request)
+        public async Task<MiddlemanResponse> GetResponseAsync(MiddlemanContext context, MiddlemanRequest request)
         {
             if (RewriteHost)
                 request.Headers["Host"] = _backendUri.Host +
@@ -41,6 +43,11 @@ namespace Middleman.ConsoleHost
 
             if (AddForwardedForHeader)
                 SetForwardedForHeader(context, request);
+
+            //if (RemoveExpectHeader &&
+            //    request.Headers.AllKeys.Any(
+            //        h => h.Equals(HttpRequestHeader.Expect.ToString(), StringComparison.InvariantCultureIgnoreCase)))
+            //    request.Headers.Remove(HttpRequestHeader.Expect);
 
             var sw = Stopwatch.StartNew();
 
@@ -53,7 +60,7 @@ namespace Middleman.ConsoleHost
             else
             {
                 var ipAddresses = await Dns.GetHostAddressesAsync(_backendUri.Host);
-                ip = ipAddresses[0];
+                ip = ipAddresses.FirstOrDefault(o => !o.ToString().Contains(":"));
             }
 
             var backendEp = new IPEndPoint(ip, _backendUri.Port);
@@ -78,7 +85,7 @@ namespace Middleman.ConsoleHost
             return response;
         }
 
-        private void SetForwardedForHeader(SwitchboardContext context, SwitchboardRequest request)
+        private void SetForwardedForHeader(MiddlemanContext context, MiddlemanRequest request)
         {
             var remoteAddress = context.InboundConnection.RemoteEndPoint.Address.ToString();
             var currentForwardedFor = request.Headers["X-Forwarded-For"];
