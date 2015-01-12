@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 using Middleman.Server.Connection;
 using Middleman.Server.Context;
 using Middleman.Server.Handlers;
+using NLog;
 
 namespace Middleman.Server.Server
 {
     public class MiddlemanServer
     {
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         private readonly IMiddlemanRequestHandler _handler;
         private readonly TcpListener _server;
 
@@ -34,13 +36,16 @@ namespace Middleman.Server.Server
                 var client = await _server.AcceptTcpClientAsync();
 
                 var inbound = await CreateInboundConnection(client);
-                await inbound.OpenAsync(ct);
+                //if (client.Connected && client.Available > 0 && inbound.IsConnected)
+                //{
+                    await inbound.OpenAsync(ct);
 
-                Debug.WriteLine("{0}: Connected", inbound.RemoteEndPoint);
+                    Log.Info("{0}: Connected", inbound.RemoteEndPoint);
 
-                var context = new MiddlemanContext(inbound);
+                    var context = new MiddlemanContext(inbound);
 
-                HandleSession(context);
+                    HandleSession(context);
+                //}
             }
         }
 
@@ -53,7 +58,7 @@ namespace Middleman.Server.Server
         {
             try
             {
-                Debug.WriteLine("{0}: Starting session", context.InboundConnection.RemoteEndPoint);
+                Log.Info("{0}: Starting session", context.InboundConnection.RemoteEndPoint);
 
                 do
                 {
@@ -62,15 +67,15 @@ namespace Middleman.Server.Server
                     if (request == null)
                         return;
 
-                    Debug.WriteLine("{0}: Got {1} request for {2}", context.InboundConnection.RemoteEndPoint,
+                    Log.Info("{0}: Got {1} request for {2}", context.InboundConnection.RemoteEndPoint,
                         request.Method, request.RequestUri);
 
                     var response = await _handler.GetResponseAsync(context, request).ConfigureAwait(false);
-                    Debug.WriteLine("{0}: Got response from handler ({1})", context.InboundConnection.RemoteEndPoint,
+                    Log.Info("{0}: Got response from handler ({1})", context.InboundConnection.RemoteEndPoint,
                         response.StatusCode);
 
                     await context.InboundConnection.WriteResponseAsync(response).ConfigureAwait(false);
-                    Debug.WriteLine("{0}: Wrote response to client", context.InboundConnection.RemoteEndPoint);
+                    Log.Info("{0}: Wrote response to client", context.InboundConnection.RemoteEndPoint);
 
                     if (context.OutboundConnection != null && !context.OutboundConnection.IsConnected)
                         context.Close();
@@ -78,9 +83,9 @@ namespace Middleman.Server.Server
             }
             catch (Exception exc)
             {
-                Debug.WriteLine("{0}: Error: {1}", context.InboundConnection.RemoteEndPoint, exc.Message);
+                Log.Info("{0}: Error: {1}", context.InboundConnection.RemoteEndPoint, exc.Message);
                 context.Close();
-                Debug.WriteLine("{0}: Closed context Error: {1}", context.InboundConnection.RemoteEndPoint, exc.Message);
+                Log.Info("{0}: Closed context Error: {1}", context.InboundConnection.RemoteEndPoint, exc.Message);
             }
             finally
             {

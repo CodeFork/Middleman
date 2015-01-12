@@ -15,6 +15,26 @@ namespace Middleman.Server.Connection
         protected TcpClient Connection;
         protected NetworkStream NetworkStream;
 
+        public bool IsClientStillConnected()
+        {
+            bool connected = false;
+
+            if (NetworkStream != null)
+            {
+                try
+                {
+                    NetworkStream.Write(null, 0, 0);
+                    connected = true;
+                }
+                catch
+                {
+                    connected = false;
+                }
+            }
+
+            return connected;
+        }
+
         public OutboundConnection(IPEndPoint endPoint)
         {
             RemoteEndPoint = endPoint;

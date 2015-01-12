@@ -4,11 +4,13 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Middleman.Server.Connection;
+using NLog;
 
 namespace Middleman.Server.Context
 {
     public class MiddlemanContext
     {
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         private static long _contextCounter;
 
         public MiddlemanContext(InboundConnection client)
@@ -38,14 +40,14 @@ namespace Middleman.Server.Context
             {
                 if (!OutboundConnection.RemoteEndPoint.Equals(endPoint))
                 {
-                    Debug.WriteLine("{0}: Current outbound connection is for {1}, can't reuse for {2}",
+                    Log.Info("{0}: Current outbound connection is for {1}, can't reuse for {2}",
                         InboundConnection.RemoteEndPoint, OutboundConnection.RemoteEndPoint, endPoint);
                     OutboundConnection.Close();
                     OutboundConnection = null;
                 }
                 else if (OutboundConnection.IsSecure != secure)
                 {
-                    Debug.WriteLine("{0}: Current outbound connection {0} secure, can't reuse",
+                    Log.Info("{0}: Current outbound connection {0} secure, can't reuse",
                         InboundConnection.RemoteEndPoint);
                     OutboundConnection.Close();
                     OutboundConnection = null;
@@ -54,11 +56,11 @@ namespace Middleman.Server.Context
                 {
                     if (OutboundConnection.IsConnected)
                     {
-                        Debug.WriteLine("{0}: Reusing outbound connection to {1}", InboundConnection.RemoteEndPoint,
+                        Log.Info("{0}: Reusing outbound connection to {1}", InboundConnection.RemoteEndPoint,
                             OutboundConnection.RemoteEndPoint);
                         return OutboundConnection;
                     }
-                    Debug.WriteLine("{0}: Detected stale outbound connection, recreating",
+                    Log.Info("{0}: Detected stale outbound connection, recreating",
                         InboundConnection.RemoteEndPoint);
                     OutboundConnection.Close();
                     OutboundConnection = null;
@@ -69,7 +71,7 @@ namespace Middleman.Server.Context
 
             await conn.OpenAsync().ConfigureAwait(false);
 
-            Debug.WriteLine("{0}: Outbound connection to {1} established", InboundConnection.RemoteEndPoint,
+            Log.Info("{0}: Outbound connection to {1} established", InboundConnection.RemoteEndPoint,
                 conn.RemoteEndPoint);
 
             OutboundConnection = conn;

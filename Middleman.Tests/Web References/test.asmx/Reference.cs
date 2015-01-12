@@ -34,7 +34,8 @@ namespace Middleman.Tests.test.asmx {
         private bool useDefaultCredentialsSetExplicitly;
         
         /// <remarks/>
-        public TestService() {
+        public TestService()
+        {
             this.Url = global::Middleman.Tests.Properties.Settings.Default.Middleman_Tests_test_asmx_TestService;
             if ((this.IsLocalFileSystemWebService(this.Url) == true)) {
                 this.UseDefaultCredentials = true;

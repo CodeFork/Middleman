@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using HttpMachine;
 using Middleman.Server.Connection;
 using Middleman.Server.Utils;
+using NLog;
 
 namespace Middleman.Server.Request
 {
     internal class MiddlemanRequestParser
     {
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
         public async Task<MiddlemanRequest> ParseAsync(InboundConnection conn, Stream stream)
         {
             var del = new ParseDelegate();
@@ -19,7 +23,7 @@ namespace Middleman.Server.Request
             var readTotal = 0;
             var buffer = new byte[8192];
 
-            Debug.WriteLine("{0}: RequestParser starting", conn.RemoteEndPoint);
+            Log.Info("{0}: RequestParser starting", conn.RemoteEndPoint);
 
             while ((read = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
             {
@@ -32,7 +36,7 @@ namespace Middleman.Server.Request
                     break;
             }
 
-            Debug.WriteLine("{0}: RequestParser read enough ({1} bytes)", conn.RemoteEndPoint, readTotal);
+            Log.Info("{0}: RequestParser read enough ({1} bytes)", conn.RemoteEndPoint, readTotal);
 
             if (readTotal == 0)
                 return null;
