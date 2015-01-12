@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -6,37 +7,21 @@ using System.Threading;
 using System.Threading.Tasks;
 using Middleman.Server.Request;
 using Middleman.Server.Response;
+using NLog;
 
 namespace Middleman.Server.Connection
 {
     public class OutboundConnection : MiddlemanConnection
     {
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         protected static readonly Encoding HeaderEncoding = Encoding.GetEncoding("us-ascii");
         protected TcpClient Connection;
         protected NetworkStream NetworkStream;
 
-        public bool IsClientStillConnected()
-        {
-            bool connected = false;
-
-            if (NetworkStream != null)
-            {
-                try
-                {
-                    NetworkStream.Write(null, 0, 0);
-                    connected = true;
-                }
-                catch
-                {
-                    connected = false;
-                }
-            }
-
-            return connected;
-        }
-
         public OutboundConnection(IPEndPoint endPoint)
         {
+            Log.Info("Constructing new outbound connection to [{0}].", endPoint);
+
             RemoteEndPoint = endPoint;
             Connection = new TcpClient();
         }
@@ -87,17 +72,28 @@ namespace Middleman.Server.Connection
             sw.WriteLine();
             sw.Flush();
 
-            await writeStream.WriteAsync(ms.GetBuffer(), 0, (int) ms.Length, ct)
-                .ConfigureAwait(false);
+            byte[] reqHeaderBytes = ms.GetBuffer();
+            string reqHeaders = HeaderEncoding.GetString(reqHeaderBytes);
+
+            await writeStream.WriteAsync(reqHeaderBytes, 0, (int)ms.Length, ct).ConfigureAwait(false);
+
+            string reqBody = "";
 
             if (request.RequestBody != null)
             {
-                await request.RequestBody.CopyToAsync(writeStream)
-                    .ConfigureAwait(false);
+                var rms = new MemoryStream();
+
+                await request.RequestBody.CopyToAsync(rms).ConfigureAwait(false);
+                rms.Position = 0;
+                reqBody += HeaderEncoding.GetString(rms.ToArray(), 0, (int)rms.Length);
+                rms.Position = 0;
+
+                await rms.CopyToAsync(writeStream).ConfigureAwait(false);
             }
 
-            await writeStream.FlushAsync(ct)
-                .ConfigureAwait(false);
+            Log.Info(reqHeaders.Trim() + Environment.NewLine + Environment.NewLine + reqBody.Trim());
+
+            await writeStream.FlushAsync(ct).ConfigureAwait(false);
         }
 
         protected virtual Stream GetWriteStream()

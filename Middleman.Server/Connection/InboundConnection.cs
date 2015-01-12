@@ -22,33 +22,14 @@ namespace Middleman.Server.Connection
         public long ConnectionId;
         protected NetworkStream NetworkStream;
 
-        [DebuggerHidden]
-        public bool IsClientStillConnected()
-        {
-            bool connected = false;
-
-            if (NetworkStream != null)
-            {
-                try
-                {
-                    NetworkStream.Write(null, 0, 0);
-                    connected = true;
-                }
-                catch
-                {
-                    connected = false;
-                }
-            }
-
-            return connected;
-        }
-
         public InboundConnection(TcpClient connection)
         {
+            Log.Info("Constructing new inbound connection from [{0}] to [{1}].", connection.Client.RemoteEndPoint, connection.Client.LocalEndPoint);
+
             Connection = connection;
             NetworkStream = connection.GetStream();
             ConnectionId = Interlocked.Increment(ref _connectionCounter);
-            RemoteEndPoint = (IPEndPoint) connection.Client.RemoteEndPoint;
+            RemoteEndPoint = (IPEndPoint)connection.Client.RemoteEndPoint;
         }
 
         public override bool IsSecure
@@ -71,7 +52,6 @@ namespace Middleman.Server.Connection
                 {
                     return false;
                 }
-                //return connection.Connected; 
             }
         }
 
@@ -118,7 +98,7 @@ namespace Middleman.Server.Connection
         public async Task WriteResponseAsync(MiddlemanResponse response, CancellationToken ct)
         {
             var ms = new MemoryStream();
-            var sw = new StreamWriter(ms, HeaderEncoding) {NewLine = "\r\n"};
+            var sw = new StreamWriter(ms, HeaderEncoding) { NewLine = "\r\n" };
 
             sw.WriteLine("HTTP/{0} {1} {2}", response.ProtocolVersion, response.StatusCode, response.StatusDescription);
 
@@ -130,8 +110,13 @@ namespace Middleman.Server.Connection
 
             var writeStream = GetWriteStream();
 
-            await writeStream.WriteAsync(ms.GetBuffer(), 0, (int) ms.Length, ct).ConfigureAwait(false);
-            Log.Info("{0}: Wrote headers ({1}b)", RemoteEndPoint, ms.Length);
+            byte[] responseHeaderBytes = ms.GetBuffer();
+            string responseHeaders = HeaderEncoding.GetString(responseHeaderBytes);
+
+            await writeStream.WriteAsync(responseHeaderBytes, 0, (int)responseHeaderBytes.Length, ct).ConfigureAwait(false);
+            Log.Debug("{0}: Wrote headers ({1}b)", RemoteEndPoint, ms.Length);
+
+            string responseBody = "";
 
             if (response.ResponseBody != null && response.ResponseBody.CanRead)
             {
@@ -143,14 +128,18 @@ namespace Middleman.Server.Connection
                     (read = await response.ResponseBody.ReadAsync(buffer, 0, buffer.Length, ct).ConfigureAwait(false)) >
                     0)
                 {
+                    responseBody += HeaderEncoding.GetString(buffer,0, read);
+
                     written += read;
-                    Log.Info("{0}: Read {1:N0} bytes from response body", RemoteEndPoint, read);
+                    Log.Debug("{0}: Read {1:N0} bytes from response body", RemoteEndPoint, read);
                     await writeStream.WriteAsync(buffer, 0, read, ct).ConfigureAwait(false);
-                    Log.Info("{0}: Wrote {1:N0} bytes to client", RemoteEndPoint, read);
+                    Log.Debug("{0}: Wrote {1:N0} bytes to client", RemoteEndPoint, read);
                 }
 
-                Log.Info("{0}: Wrote response body ({1:N0} bytes) to client", RemoteEndPoint, written);
+                Log.Debug("{0}: Wrote response body ({1:N0} bytes) to client", RemoteEndPoint, written);
             }
+
+            Log.Info(responseHeaders.Trim() + Environment.NewLine + Environment.NewLine + responseBody.Trim());
 
             await writeStream.FlushAsync(ct).ConfigureAwait(false);
         }

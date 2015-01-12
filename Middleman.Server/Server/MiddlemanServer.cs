@@ -36,16 +36,15 @@ namespace Middleman.Server.Server
                 var client = await _server.AcceptTcpClientAsync();
 
                 var inbound = await CreateInboundConnection(client);
-                //if (client.Connected && client.Available > 0 && inbound.IsConnected)
-                //{
+                if (client.Connected && client.Available > 0 && inbound.IsConnected)
+                {
                     await inbound.OpenAsync(ct);
+                }
+                Log.Info("{0}: Connected", inbound.RemoteEndPoint);
 
-                    Log.Info("{0}: Connected", inbound.RemoteEndPoint);
+                var context = new MiddlemanContext(inbound);
 
-                    var context = new MiddlemanContext(inbound);
-
-                    HandleSession(context);
-                //}
+                HandleSession(context);
             }
         }
 
@@ -83,9 +82,8 @@ namespace Middleman.Server.Server
             }
             catch (Exception exc)
             {
-                Log.Info("{0}: Error: {1}", context.InboundConnection.RemoteEndPoint, exc.Message);
+                Log.ErrorException(string.Format("{0}: HandleSession Error.", context.InboundConnection.RemoteEndPoint), exc);
                 context.Close();
-                Log.Info("{0}: Closed context Error: {1}", context.InboundConnection.RemoteEndPoint, exc.Message);
             }
             finally
             {

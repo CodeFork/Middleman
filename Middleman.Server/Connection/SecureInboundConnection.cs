@@ -4,11 +4,14 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using NLog;
 
 namespace Middleman.Server.Connection
 {
     public class SecureInboundConnection : InboundConnection
     {
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
         private readonly X509Certificate _certificate;
 
         public SecureInboundConnection(TcpClient client, X509Certificate certificate)
@@ -30,7 +33,11 @@ namespace Middleman.Server.Connection
 
             SslStream = CreateSslStream(NetworkStream);
 
+            Log.Info("Authenticating using certificate: {0}.", _certificate == null ? "<NULL>" : _certificate.Subject);
+
             await SslStream.AuthenticateAsServerAsync(_certificate);
+
+            Log.Info("Authenticated.");
         }
 
         protected virtual SslStream CreateSslStream(Stream innerStream)

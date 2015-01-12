@@ -14,17 +14,17 @@ namespace Middleman.Server.Handlers
     ///     Sample implementation of a reverse proxy. Streams requests and responses (no buffering).
     ///     No support for location header rewriting.
     /// </summary>
-    public class SimpleReverseProxyHandler : IMiddlemanRequestHandler
+    public class ReverseProxyHandler : IMiddlemanRequestHandler
     {
         private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         private readonly Uri _backendUri;
 
-        public SimpleReverseProxyHandler(string backendUri)
+        public ReverseProxyHandler(string backendUri)
             : this(new Uri(backendUri))
         {
         }
 
-        public SimpleReverseProxyHandler(Uri backendUri)
+        public ReverseProxyHandler(Uri backendUri)
         {
             _backendUri = backendUri;
 
@@ -39,8 +39,6 @@ namespace Middleman.Server.Handlers
 
         public async Task<MiddlemanResponse> GetResponseAsync(MiddlemanContext context, MiddlemanRequest request)
         {
-            Log.Info("New connection from {0}.", context.InboundConnection.RemoteEndPoint);
-
             if (RewriteHost)
                 request.Headers["Host"] = _backendUri.Host +
                                           (_backendUri.IsDefaultPort ? string.Empty : ":" + _backendUri.Port);
@@ -52,11 +50,6 @@ namespace Middleman.Server.Handlers
                 request.Headers.AllKeys.Any(
                     h => h.Equals(HttpRequestHeader.Expect.ToString(), StringComparison.InvariantCultureIgnoreCase)))
                 request.Headers.Remove(HttpRequestHeader.Expect);
-
-
-            var headers = request.Headers.ToString();
-
-            Log.Info(headers);
 
             var sw = Stopwatch.StartNew();
 
@@ -74,7 +67,7 @@ namespace Middleman.Server.Handlers
 
             var backendEp = new IPEndPoint(ip, _backendUri.Port);
 
-            Log.Info("{0}: Resolved upstream server to {1} in {2}ms, opening connection",
+            Log.Debug("{0}: Resolved upstream server to {1} in {2}ms, opening connection",
                 context.InboundConnection.RemoteEndPoint, backendEp, sw.Elapsed.TotalMilliseconds);
 
             if (_backendUri.Scheme != "https")
@@ -82,14 +75,12 @@ namespace Middleman.Server.Handlers
             else
                 await context.OpenSecureOutboundConnectionAsync(backendEp, _backendUri.Host);
 
-            Log.Info("{0}: Outbound connection established, sending request",
+            Log.Debug("{0}: Outbound connection established, sending request",
                 context.InboundConnection.RemoteEndPoint);
             sw.Restart();
             await context.OutboundConnection.WriteRequestAsync(request);
-            Log.Info("{0}: Handler sent request in {1}ms", context.InboundConnection.RemoteEndPoint,
+            Log.Debug("{0}: Handler sent request in {1}ms", context.InboundConnection.RemoteEndPoint,
                 sw.Elapsed.TotalMilliseconds);
-
-            Log.Info("New connection from {0} to {1}.", context.InboundConnection.RemoteEndPoint, context.OutboundConnection.RemoteEndPoint);
 
             var response = await context.OutboundConnection.ReadResponseAsync();
 

@@ -11,7 +11,9 @@ namespace Middleman.Server.Configuration
 
         public ListenerConfiguration this[int index]
         {
-            get { return (ListenerConfiguration)BaseGet(index); }
+            get { 
+                return (ListenerConfiguration)BaseGet(index); 
+            }
             set
             {
                 if (BaseGet(index) != null)

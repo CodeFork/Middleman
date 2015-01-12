@@ -3,11 +3,14 @@ using System.Net;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
+using NLog;
 
 namespace Middleman.Server.Connection
 {
     public class SecureOutboundConnection : OutboundConnection
     {
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
         public SecureOutboundConnection(string targetHost, IPEndPoint ep)
             : base(ep)
         {
@@ -28,7 +31,11 @@ namespace Middleman.Server.Connection
 
             SslStream = CreateSslStream(NetworkStream);
 
+            Log.Info("Authenticating: {0}.", TargetHost ?? "<NULL>");
+
             await SslStream.AuthenticateAsClientAsync(TargetHost);
+
+            Log.Info("Authenticated.");
         }
 
         protected virtual SslStream CreateSslStream(Stream innerStream)

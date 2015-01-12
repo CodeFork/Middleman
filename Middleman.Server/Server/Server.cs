@@ -60,7 +60,7 @@ namespace Middleman.Server.Server
         public void Start()
         {
             var endPoint = new IPEndPoint(IPAddress.Any, Port);
-            var handler = new SimpleReverseProxyHandler(DestinationWebRoot);
+            var handler = new ReverseProxyHandler(DestinationWebRoot);
 
             handler.AddForwardedForHeader = false;
             //handler.RewriteHost = false;

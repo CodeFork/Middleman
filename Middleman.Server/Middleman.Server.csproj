@@ -48,7 +48,7 @@
     <Compile Include="Connection\InboundConnection.cs" />
     <Compile Include="Connection\SecureInboundConnection.cs" />
     <Compile Include="Connection\SecureOutboundConnection.cs" />
-    <Compile Include="Handlers\SimpleReverseProxyHandler.cs" />
+    <Compile Include="Handlers\ReverseProxyHandler.cs" />
     <Compile Include="Configuration\ListenerConfiguration.cs" />
     <Compile Include="Configuration\ListenerConfigurationCollection.cs" />
     <Compile Include="Configuration\ListenerConfigurationSection.cs" />

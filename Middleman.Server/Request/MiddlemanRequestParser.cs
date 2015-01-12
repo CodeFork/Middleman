@@ -23,7 +23,7 @@ namespace Middleman.Server.Request
             var readTotal = 0;
             var buffer = new byte[8192];
 
-            Log.Info("{0}: RequestParser starting", conn.RemoteEndPoint);
+            Log.Debug("{0}: RequestParser starting", conn.RemoteEndPoint);
 
             while ((read = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
             {
@@ -36,7 +36,7 @@ namespace Middleman.Server.Request
                     break;
             }
 
-            Log.Info("{0}: RequestParser read enough ({1} bytes)", conn.RemoteEndPoint, readTotal);
+            Log.Debug("{0}: RequestParser read enough ({1} bytes)", conn.RemoteEndPoint, readTotal);
 
             if (readTotal == 0)
                 return null;

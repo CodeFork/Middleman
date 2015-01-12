@@ -17,6 +17,8 @@ namespace Middleman.Server.Context
         {
             InboundConnection = client;
             ContextId = Interlocked.Increment(ref _contextCounter);
+
+            Log.Info("Creating context ({1}) for connection from {0}.", client.RemoteEndPoint, ContextId);
         }
 
         public long ContextId { get; private set; }
@@ -40,7 +42,7 @@ namespace Middleman.Server.Context
             {
                 if (!OutboundConnection.RemoteEndPoint.Equals(endPoint))
                 {
-                    Log.Info("{0}: Current outbound connection is for {1}, can't reuse for {2}",
+                    Log.Debug("{0}: Current outbound connection is for {1}, can't reuse for {2}",
                         InboundConnection.RemoteEndPoint, OutboundConnection.RemoteEndPoint, endPoint);
                     OutboundConnection.Close();
                     OutboundConnection = null;
@@ -56,11 +58,11 @@ namespace Middleman.Server.Context
                 {
                     if (OutboundConnection.IsConnected)
                     {
-                        Log.Info("{0}: Reusing outbound connection to {1}", InboundConnection.RemoteEndPoint,
+                        Log.Debug("{0}: Reusing outbound connection to {1}", InboundConnection.RemoteEndPoint,
                             OutboundConnection.RemoteEndPoint);
                         return OutboundConnection;
                     }
-                    Log.Info("{0}: Detected stale outbound connection, recreating",
+                    Log.Debug("{0}: Detected stale outbound connection, recreating",
                         InboundConnection.RemoteEndPoint);
                     OutboundConnection.Close();
                     OutboundConnection = null;
@@ -71,7 +73,7 @@ namespace Middleman.Server.Context
 
             await conn.OpenAsync().ConfigureAwait(false);
 
-            Log.Info("{0}: Outbound connection to {1} established", InboundConnection.RemoteEndPoint,
+            Log.Debug("{0}: Outbound connection to {1} established", InboundConnection.RemoteEndPoint,
                 conn.RemoteEndPoint);
 
             OutboundConnection = conn;
