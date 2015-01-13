@@ -1,17 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Middleman.Server.Server;
 
 namespace Middleman.Console
 {
-    class Program
+    internal class Program
     {
         private static ServerManager _serviceManager;
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             _serviceManager = ServerManager.Servers();
 

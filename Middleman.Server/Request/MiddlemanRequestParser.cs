@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,8 +24,11 @@ namespace Middleman.Server.Request
 
             Log.Debug("{0}: RequestParser starting", conn.RemoteEndPoint);
 
+            var requestString = "";
+
             while ((read = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
             {
+                requestString += Encoding.GetEncoding("us-ascii").GetString(buffer, 0, read);
                 readTotal += read;
 
                 if (parser.Execute(new ArraySegment<byte>(buffer, 0, read)) != read)
@@ -37,6 +39,7 @@ namespace Middleman.Server.Request
             }
 
             Log.Debug("{0}: RequestParser read enough ({1} bytes)", conn.RemoteEndPoint, readTotal);
+            Log.Debug(requestString);
 
             if (readTotal == 0)
                 return null;

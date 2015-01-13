@@ -11,7 +11,6 @@ namespace Middleman.Server.Connection
     public class SecureInboundConnection : InboundConnection
     {
         private static readonly Logger Log = LogManager.GetCurrentClassLogger();
-
         private readonly X509Certificate _certificate;
 
         public SecureInboundConnection(TcpClient client, X509Certificate certificate)

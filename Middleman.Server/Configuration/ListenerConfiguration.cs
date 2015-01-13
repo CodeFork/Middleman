@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Configuration;
-using NLog;
+using System.Net;
 
 namespace Middleman.Server.Configuration
 {
     public class ListenerConfiguration : ConfigurationElement
     {
+        private readonly IPAddress _address;
+
         public ListenerConfiguration()
         {
-
+            _address = IPAddress.Any;
         }
 
         public ListenerConfiguration(int listenPort, bool listenSsl, string sslCertName, string destinationHost)
@@ -25,40 +27,47 @@ namespace Middleman.Server.Configuration
             get
             {
                 var v = Convert.ToBoolean(this["ListenSsl"]);
-                return v; 
+                return v;
             }
-            set 
-            {
-                this["ListenSsl"] = value; 
-            }
+            set { this["ListenSsl"] = value; }
         }
 
         [ConfigurationProperty("ListenPort", IsRequired = true, IsKey = true)]
         public int ListenPort
         {
-            get 
+            get
             {
-                var v = (int)this["ListenPort"];
+                var v = (int) this["ListenPort"];
                 return v;
             }
-            set 
+            set { this["ListenPort"] = value; }
+        }
+
+        [ConfigurationProperty("ListenIp", IsRequired = false, IsKey = false)]
+        public string ListenIp
+        {
+            get
             {
-                this["ListenPort"] = value;
+                IPAddress ip;
+                var v = (this["ListenIp"] ?? "").ToString();
+                if (IPAddress.TryParse(v, out ip))
+                {
+                    return ip.ToString();
+                }
+                return _address.ToString();
             }
+            set { this["ListenIp"] = value; }
         }
 
         [ConfigurationProperty("DestinationHost", IsRequired = true, IsKey = false)]
         public string DestinationHost
         {
-            get 
+            get
             {
-                var v = (string)this["DestinationHost"];
-                return (string)this["DestinationHost"];
+                var v = (string) this["DestinationHost"];
+                return (string) this["DestinationHost"];
             }
-            set 
-            {
-                this["DestinationHost"] = value; 
-            }
+            set { this["DestinationHost"] = value; }
         }
 
         [ConfigurationProperty("SslCertName", IsRequired = false, DefaultValue = null, IsKey = false)]
@@ -66,13 +75,10 @@ namespace Middleman.Server.Configuration
         {
             get
             {
-                var v = (string)this["SslCertName"];
-                return (string)this["SslCertName"]; 
+                var v = (string) this["SslCertName"];
+                return (string) this["SslCertName"];
             }
-            set
-            {
-                this["SslCertName"] = value;
-            }
+            set { this["SslCertName"] = value; }
         }
     }
 }

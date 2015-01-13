@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -36,10 +35,10 @@ namespace Middleman.Server.Server
                 var client = await _server.AcceptTcpClientAsync();
 
                 var inbound = await CreateInboundConnection(client);
-                if (client.Connected && client.Available > 0 && inbound.IsConnected)
-                {
-                    await inbound.OpenAsync(ct);
-                }
+                //if (client.Connected && client.Available > 0 && inbound.IsConnected)
+                //{
+                await inbound.OpenAsync(ct);
+                //}
                 Log.Info("{0}: Connected", inbound.RemoteEndPoint);
 
                 var context = new MiddlemanContext(inbound);

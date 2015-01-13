@@ -1,6 +1,5 @@
 ﻿using System.ServiceProcess;
 using System.Threading.Tasks;
-using Middleman.Server;
 using Middleman.Server.Server;
 
 namespace Middleman.Service

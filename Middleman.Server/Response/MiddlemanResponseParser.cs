@@ -1,13 +1,17 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Middleman.Server.Utils;
 using Middleman.Server.Utils.HttpParser;
+using NLog;
 
 namespace Middleman.Server.Response
 {
     internal class MiddlemanResponseParser
     {
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
         public async Task<MiddlemanResponse> ParseAsync(Stream stream)
         {
             var del = new ParseDelegate();
@@ -16,13 +20,22 @@ namespace Middleman.Server.Response
             int read;
             var buffer = new byte[8192];
 
+            var responseString = "";
             while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
+                responseString += Encoding.GetEncoding("us-ascii").GetString(buffer, 0, read);
+
                 parser.Execute(buffer, 0, read);
 
                 if (del.HeaderComplete)
                     break;
             }
+
+            if (responseString.ToLowerInvariant().Contains("content-type: image/"))
+            {
+                responseString = responseString.Substring(0, responseString.IndexOf(Environment.NewLine + Environment.NewLine)).Trim();
+            }
+            Log.Debug(responseString);
 
             if (!del.HeaderComplete)
                 throw new FormatException("Parse error in response");

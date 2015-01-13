@@ -3,15 +3,39 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Threading;
 using Middleman.Server.Configuration;
+using NLog;
 
 namespace Middleman.Server.Server
 {
     public class ServerManager
     {
-        private readonly List<Server> _servers = new List<Server>();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         private static readonly object _lock = new object();
-        private List<ManualResetEvent> _semaphores = new List<ManualResetEvent>();
-        private static ServerManager _instance = null;
+        private static ServerManager _instance;
+        private readonly List<ManualResetEvent> _semaphores = new List<ManualResetEvent>();
+        private readonly List<Server> _servers = new List<Server>();
+        private readonly ManualResetEvent _wait = null;
+
+        private ServerManager()
+        {
+            //ServicePointManager.Expect100Continue = false;
+        }
+
+        public int ServerCount
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _servers.Count;
+                }
+            }
+        }
+
+        public Server[] AllServers
+        {
+            get { return _servers.ToArray(); }
+        }
 
         public static ServerManager Servers()
         {
@@ -35,7 +59,7 @@ namespace Middleman.Server.Server
                 var ex = args.ExceptionObject as Exception;
                 if (ex != null)
                 {
-
+                    Log.ErrorException("UnhandledException", ex);
                 }
             }
             catch
@@ -44,32 +68,16 @@ namespace Middleman.Server.Server
             }
         }
 
-        private ServerManager()
-        {
-            //ServicePointManager.Expect100Continue = false;
-        }
-
-        public int ServerCount
-        {
-            get
-            {
-                lock (_lock)
-                {
-                    return _servers.Count;
-                }
-            }
-        }
-
         public ServerManager StartAll()
         {
-            ListenerConfigurationSection config = ConfigurationManager.GetSection("ListenersSection") as ListenerConfigurationSection;
+            var config = ConfigurationManager.GetSection("ListenersSection") as ListenerConfigurationSection;
 
             foreach (ListenerConfiguration lc in config.Listeners)
             {
                 var semaphore = new ManualResetEvent(false);
                 _semaphores.Add(semaphore);
 
-                ThreadPool.QueueUserWorkItem(StartServerAsync, new { Config = lc, Semaphore = semaphore });
+                ThreadPool.QueueUserWorkItem(StartServerAsync, new {Config = lc, Semaphore = semaphore});
 
                 semaphore.WaitOne();
             }
@@ -77,7 +85,6 @@ namespace Middleman.Server.Server
             return this;
         }
 
-        private readonly ManualResetEvent _wait = null;
         public void WaitForConnections()
         {
             if (_wait != null)
@@ -97,10 +104,10 @@ namespace Middleman.Server.Server
 
         private void StartServerAsync(object state)
         {
-            var lc = ((dynamic)state).Config as ListenerConfiguration;
-            var sp = ((dynamic)state).Semaphore as ManualResetEvent;
+            var lc = ((dynamic) state).Config as ListenerConfiguration;
+            var sp = ((dynamic) state).Semaphore as ManualResetEvent;
 
-            Server s = new Server(lc.DestinationHost, lc.ListenPort, lc.ListenSsl, lc.SslCertName);
+            var s = new Server(lc);
 
             lock (_lock)
             {
@@ -110,12 +117,5 @@ namespace Middleman.Server.Server
 
             s.Start();
         }
-
-        public Server[] AllServers
-        {
-            get { return _servers.ToArray(); }
-        }
-
-
     }
 }

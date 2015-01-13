@@ -1,9 +1,9 @@
 ﻿using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using Middleman.Server.Configuration;
 using Middleman.Server.Handlers;
 using NLog;
-using System.IO;
 
 namespace Middleman.Server.Server
 {
@@ -11,47 +11,37 @@ namespace Middleman.Server.Server
     {
         private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
+        #region Constructors
+
+        public Server(ListenerConfiguration lc)
+        {
+            _lc = lc;
+            Port = lc.ListenPort;
+            UseHttps = lc.ListenSsl;
+            CertSearchString = lc.SslCertName;
+            DestinationWebRoot = lc.DestinationHost;
+        }
+
+        #endregion Constructors
+
         #region Fields
 
         private static readonly object SyncRoot = new object();
 
         private X509Certificate2 _serverCertificate;
+        private readonly ListenerConfiguration _lc;
 
         public int Port { get; private set; }
 
         #endregion Fields
 
-        #region Constructors
-
-        public Server(string destinationWebRoot, int port = 5161, bool https = false, string certSearchString = "TJunction")
-        {
-            Port = port;
-            UseHttps = https;
-            CertSearchString = certSearchString;
-            DestinationWebRoot = destinationWebRoot;
-        }
-
-        #endregion Constructors
-
         #region Properties
 
-        public string CertSearchString
-        {
-            get;
-            private set;
-        }
+        public string CertSearchString { get; private set; }
 
-        public string DestinationWebRoot
-        {
-            get;
-            private set;
-        }
+        public string DestinationWebRoot { get; private set; }
 
-        public bool UseHttps
-        {
-            get;
-            private set;
-        }
+        public bool UseHttps { get; private set; }
 
         #endregion Properties
 
@@ -59,11 +49,11 @@ namespace Middleman.Server.Server
 
         public void Start()
         {
-            var endPoint = new IPEndPoint(IPAddress.Any, Port);
+            var endPoint = new IPEndPoint(IPAddress.Parse(_lc.ListenIp), Port);
             var handler = new ReverseProxyHandler(DestinationWebRoot);
 
             handler.AddForwardedForHeader = false;
-            //handler.RewriteHost = false;
+            handler.RewriteHost = true;
             handler.RemoveExpectHeader = true;
 
             if (UseHttps)
@@ -170,7 +160,6 @@ namespace Middleman.Server.Server
 
             return returnCert;
         }
-
 
         #endregion Methods
     }

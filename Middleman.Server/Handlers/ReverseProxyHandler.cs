@@ -29,7 +29,7 @@ namespace Middleman.Server.Handlers
             _backendUri = backendUri;
 
             RewriteHost = true;
-            AddForwardedForHeader = false;
+            AddForwardedForHeader = true;
             RemoveExpectHeader = true;
         }
 
@@ -39,6 +39,7 @@ namespace Middleman.Server.Handlers
 
         public async Task<MiddlemanResponse> GetResponseAsync(MiddlemanContext context, MiddlemanRequest request)
         {
+            //request.RequestUri += string.Format("{1}{0}={0}", Environment.TickCount, request.RequestUri.Contains("?") ? "&" : "?");
             if (RewriteHost)
                 request.Headers["Host"] = _backendUri.Host +
                                           (_backendUri.IsDefaultPort ? string.Empty : ":" + _backendUri.Port);
@@ -50,6 +51,21 @@ namespace Middleman.Server.Handlers
                 request.Headers.AllKeys.Any(
                     h => h.Equals(HttpRequestHeader.Expect.ToString(), StringComparison.InvariantCultureIgnoreCase)))
                 request.Headers.Remove(HttpRequestHeader.Expect);
+
+            //if (request.Headers.AllKeys.Any(h => h.Equals(HttpRequestHeader.Range.ToString(), StringComparison.InvariantCultureIgnoreCase))) 
+            //    request.Headers.Remove(HttpRequestHeader.Range);
+
+            //if (request.Headers.AllKeys.Any(h => h.Replace("-","").Equals(HttpRequestHeader.IfRange.ToString(), StringComparison.InvariantCultureIgnoreCase)))
+            //    request.Headers.Remove(HttpRequestHeader.IfRange);
+
+            //if (request.Headers.AllKeys.Any(h => h.Replace("-", "").Equals(HttpRequestHeader.IfModifiedSince.ToString(), StringComparison.InvariantCultureIgnoreCase)))
+            //    request.Headers.Remove(HttpRequestHeader.IfModifiedSince);
+
+            //if (request.Headers.AllKeys.Any(h => h.Replace("-", "").Equals(HttpRequestHeader.IfMatch.ToString(), StringComparison.InvariantCultureIgnoreCase)))
+            //    request.Headers.Remove(HttpRequestHeader.IfMatch);
+
+            //if (request.Headers.AllKeys.Any(h => h.Replace("-", "").Equals(HttpRequestHeader.IfNoneMatch.ToString(), StringComparison.InvariantCultureIgnoreCase)))
+            //    request.Headers.Remove(HttpRequestHeader.IfNoneMatch);
 
             var sw = Stopwatch.StartNew();
 

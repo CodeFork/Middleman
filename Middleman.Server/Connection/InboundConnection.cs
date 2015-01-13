@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -29,7 +28,7 @@ namespace Middleman.Server.Connection
             Connection = connection;
             NetworkStream = connection.GetStream();
             ConnectionId = Interlocked.Increment(ref _connectionCounter);
-            RemoteEndPoint = (IPEndPoint)connection.Client.RemoteEndPoint;
+            RemoteEndPoint = (IPEndPoint) connection.Client.RemoteEndPoint;
         }
 
         public override bool IsSecure
@@ -98,25 +97,32 @@ namespace Middleman.Server.Connection
         public async Task WriteResponseAsync(MiddlemanResponse response, CancellationToken ct)
         {
             var ms = new MemoryStream();
-            var sw = new StreamWriter(ms, HeaderEncoding) { NewLine = "\r\n" };
+            var sw = new StreamWriter(ms, HeaderEncoding) {NewLine = "\r\n"};
 
             sw.WriteLine("HTTP/{0} {1} {2}", response.ProtocolVersion, response.StatusCode, response.StatusDescription);
 
             for (var i = 0; i < response.Headers.Count; i++)
-                sw.WriteLine("{0}: {1}", response.Headers.GetKey(i), response.Headers.Get(i));
+            {
+                var key = response.Headers.GetKey(i);
+                var val = response.Headers.Get(i);
+
+                sw.WriteLine("{0}: {1}", key, val);
+            }
 
             sw.WriteLine();
             sw.Flush();
 
             var writeStream = GetWriteStream();
 
-            byte[] responseHeaderBytes = ms.GetBuffer();
-            string responseHeaders = HeaderEncoding.GetString(responseHeaderBytes);
+            ms.Position = 0;
 
-            await writeStream.WriteAsync(responseHeaderBytes, 0, (int)responseHeaderBytes.Length, ct).ConfigureAwait(false);
+            var responseHeaderBytes = ms.ToArray();
+            var responseHeaders = HeaderEncoding.GetString(responseHeaderBytes);
+
+            await writeStream.WriteAsync(responseHeaderBytes, 0, responseHeaderBytes.Length, ct).ConfigureAwait(false);
             Log.Debug("{0}: Wrote headers ({1}b)", RemoteEndPoint, ms.Length);
 
-            string responseBody = "";
+            var responseBody = "";
 
             if (response.ResponseBody != null && response.ResponseBody.CanRead)
             {
@@ -128,12 +134,25 @@ namespace Middleman.Server.Connection
                     (read = await response.ResponseBody.ReadAsync(buffer, 0, buffer.Length, ct).ConfigureAwait(false)) >
                     0)
                 {
-                    responseBody += HeaderEncoding.GetString(buffer,0, read);
+                    responseBody += HeaderEncoding.GetString(buffer, 0, read);
 
                     written += read;
                     Log.Debug("{0}: Read {1:N0} bytes from response body", RemoteEndPoint, read);
-                    await writeStream.WriteAsync(buffer, 0, read, ct).ConfigureAwait(false);
-                    Log.Debug("{0}: Wrote {1:N0} bytes to client", RemoteEndPoint, read);
+
+                    try
+                    {
+                        await writeStream.WriteAsync(buffer, 0, read, ct).ConfigureAwait(false);
+                        Log.Debug("{0}: Wrote {1:N0} bytes to client", RemoteEndPoint, read);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.ErrorException("Error writing to response stream", ex);
+                    }
+
+                    if (written >= response.ContentLength)
+                    {
+                        break;
+                    }
                 }
 
                 Log.Debug("{0}: Wrote response body ({1:N0} bytes) to client", RemoteEndPoint, written);

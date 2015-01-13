@@ -1,34 +1,33 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.CodeDom.Compiler;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Text;
 using System.Threading;
+using System.Web.Services;
+using System.Web.Services.Description;
 using System.Web.Services.Protocols;
 using IISExpressAutomation;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Middleman.Server.Handlers;
-using Middleman.Server;
+using Microsoft.Web.Services3;
 using Middleman.Server.Server;
+using Middleman.Tests.Properties;
 using Middleman.Tests.test.asmx;
-using TraceLevel = IISExpressAutomation.TraceLevel;
 
 namespace Middleman.Tests
 {
     [TestClass]
     public class WebServiceTests
     {
-        private static IISExpress _iisExpress = null;
+        private static IISExpress _iisExpress;
 
         [ClassInitialize]
         public static void Init(TestContext ctx)
         {
             ServicePointManager.CheckCertificateRevocationList = false;
-            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, errors) =>
-            {
-                return true;
-            };
+            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, errors) => { return true; };
 
             var iexps = Process.GetProcessesByName("IISExpress");
             foreach (var iexp in iexps)
@@ -85,7 +84,7 @@ namespace Middleman.Tests
                         Assert.IsNotNull(args.Result);
                         Assert.IsTrue(args.Result.Contains("Hello World"));
 
-                        var w = (ManualResetEvent)args.UserState;
+                        var w = (ManualResetEvent) args.UserState;
                         w.Set();
                     };
 
@@ -106,7 +105,7 @@ namespace Middleman.Tests
 
             foreach (var s in sm.AllServers)
             {
-                string protocol = s.UseHttps ? "https" : "http";
+                var protocol = s.UseHttps ? "https" : "http";
 
                 var html = new WebClient().DownloadString(string.Format("{1}://localhost:{0}/", s.Port, protocol));
 
@@ -124,7 +123,6 @@ namespace Middleman.Tests
                 using (var ws = new TestServiceWse())
                 using (var wait = new ManualResetEvent(false))
                 {
-                
                     var proto = s.UseHttps ? "https" : "http";
                     ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
 
@@ -138,7 +136,7 @@ namespace Middleman.Tests
                         Assert.IsNotNull(args.Result);
                         Assert.IsTrue(args.Result.Contains("Hello World"));
 
-                        var w = (ManualResetEvent)args.UserState;
+                        var w = (ManualResetEvent) args.UserState;
                         w.Set();
                     };
 
@@ -152,105 +150,100 @@ namespace Middleman.Tests
             }
         }
 
-         [TestMethod]
+        [TestMethod]
         public void TestHttpWebHighVolume()
         {
             var sm = ServerManager.Servers().StartAll();
 
-             foreach (var s in sm.AllServers)
-             {
-                 for (int i = 0; i < 25; i++)
-                 {
-                     string protocol = s.UseHttps ? "https" : "http";
+            foreach (var s in sm.AllServers)
+            {
+                for (var i = 0; i < 25; i++)
+                {
+                    var protocol = s.UseHttps ? "https" : "http";
 
-                     var html = new WebClient().DownloadString(string.Format("{1}://localhost:{0}/", s.Port, protocol));
+                    var html = new WebClient().DownloadString(string.Format("{1}://localhost:{0}/", s.Port, protocol));
 
-                     Debug.WriteLine(string.Format("{1}://localhost:{0}/", s.Port, protocol));
+                    Debug.WriteLine("{1}://localhost:{0}/", s.Port, protocol);
 
-                     Assert.IsTrue(html.Contains("Hello World"));
-                 }
-             }
+                    Assert.IsTrue(html.Contains("Hello World"));
+                }
+            }
         }
 
-         [TestMethod]
-         public void TestHttpAsmxHighVolume()
-         {
-             var sm = ServerManager.Servers().StartAll();
+        [TestMethod]
+        public void TestHttpAsmxHighVolume()
+        {
+            var sm = ServerManager.Servers().StartAll();
 
-             foreach (var s in sm.AllServers)
-             {
-                 for (int i = 0; i < 25; i++)
-                 {
-                     using (var ws = new TestService())
-                     using (var wait = new ManualResetEvent(false))
-                     {
-                         var proto = s.UseHttps ? "https" : "http";
-                         ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
+            foreach (var s in sm.AllServers)
+            {
+                for (var i = 0; i < 25; i++)
+                {
+                    using (var ws = new TestService())
+                    using (var wait = new ManualResetEvent(false))
+                    {
+                        var proto = s.UseHttps ? "https" : "http";
+                        ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
 
-                         var result = ws.SimpleMethod();
-                         Assert.IsTrue(result.Contains("Hello World"));
+                        var result = ws.SimpleMethod();
+                        Assert.IsTrue(result.Contains("Hello World"));
 
-                         ws.SimpleMethodCompleted += (sender, args) =>
-                         {
-                             Assert.IsNull(args.Error);
-                             Assert.IsFalse(args.Cancelled);
-                             Assert.IsNotNull(args.Result);
-                             Assert.IsTrue(args.Result.Contains("Hello World"));
+                        ws.SimpleMethodCompleted += (sender, args) =>
+                        {
+                            Assert.IsNull(args.Error);
+                            Assert.IsFalse(args.Cancelled);
+                            Assert.IsNotNull(args.Result);
+                            Assert.IsTrue(args.Result.Contains("Hello World"));
 
-                             var w = (ManualResetEvent) args.UserState;
-                             w.Set();
-                         };
+                            var w = (ManualResetEvent) args.UserState;
+                            w.Set();
+                        };
 
-                         ws.SimpleMethodAsync(wait);
+                        ws.SimpleMethodAsync(wait);
 
-                         if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
-                         {
-                             Assert.Fail("No response was received after 5 seconds.");
-                         }
-                     }
-                 }
-             }
-         }
+                        if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
+                        {
+                            Assert.Fail("No response was received after 5 seconds.");
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Web.Services", "4.0.30319.34209")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Web.Services.WebServiceBindingAttribute(Name = "TestServiceSoap", Namespace = "http://localhost/")]
-    public partial class TestServiceWse : Microsoft.Web.Services3.WebServicesClientProtocol
+    /// <remarks />
+    [GeneratedCode("System.Web.Services", "4.0.30319.34209")]
+    [DebuggerStepThrough]
+    [DesignerCategory("code")]
+    [WebServiceBinding(Name = "TestServiceSoap", Namespace = "http://localhost/")]
+    public class TestServiceWse : WebServicesClientProtocol
     {
-
-        private System.Threading.SendOrPostCallback SimpleMethodOperationCompleted;
-
+        private SendOrPostCallback SimpleMethodOperationCompleted;
         private bool useDefaultCredentialsSetExplicitly;
 
-        /// <remarks/>
+        /// <remarks />
         public TestServiceWse()
         {
-            this.Url = global::Middleman.Tests.Properties.Settings.Default.Middleman_Tests_test_asmx_TestService;
-            if ((this.IsLocalFileSystemWebService(this.Url) == true))
+            Url = Settings.Default.Middleman_Tests_test_asmx_TestService;
+            if (IsLocalFileSystemWebService(Url))
             {
-                this.UseDefaultCredentials = true;
-                this.useDefaultCredentialsSetExplicitly = false;
+                UseDefaultCredentials = true;
+                useDefaultCredentialsSetExplicitly = false;
             }
             else
             {
-                this.useDefaultCredentialsSetExplicitly = true;
+                useDefaultCredentialsSetExplicitly = true;
             }
         }
 
         public new string Url
         {
-            get
-            {
-                return base.Url;
-            }
+            get { return base.Url; }
             set
             {
-                if ((((this.IsLocalFileSystemWebService(base.Url) == true)
-                            && (this.useDefaultCredentialsSetExplicitly == false))
-                            && (this.IsLocalFileSystemWebService(value) == false)))
+                if (((IsLocalFileSystemWebService(base.Url)
+                      && (useDefaultCredentialsSetExplicitly == false))
+                     && (IsLocalFileSystemWebService(value) == false)))
                 {
                     base.UseDefaultCredentials = false;
                 }
@@ -260,54 +253,51 @@ namespace Middleman.Tests
 
         public new bool UseDefaultCredentials
         {
-            get
-            {
-                return base.UseDefaultCredentials;
-            }
+            get { return base.UseDefaultCredentials; }
             set
             {
                 base.UseDefaultCredentials = value;
-                this.useDefaultCredentialsSetExplicitly = true;
+                useDefaultCredentialsSetExplicitly = true;
             }
         }
 
-        /// <remarks/>
+        /// <remarks />
         public event SimpleMethodCompletedEventHandler SimpleMethodCompleted;
 
-        /// <remarks/>
-        [System.Web.Services.Protocols.SoapDocumentMethodAttribute("http://localhost/SimpleMethod", RequestNamespace = "http://localhost/", ResponseNamespace = "http://localhost/", Use = System.Web.Services.Description.SoapBindingUse.Literal, ParameterStyle = System.Web.Services.Protocols.SoapParameterStyle.Wrapped)]
+        /// <remarks />
+        [SoapDocumentMethod("http://localhost/SimpleMethod", RequestNamespace = "http://localhost/", ResponseNamespace = "http://localhost/", Use = SoapBindingUse.Literal, ParameterStyle = SoapParameterStyle.Wrapped)]
         public string SimpleMethod()
         {
-            object[] results = this.Invoke("SimpleMethod", new object[0]);
-            return ((string)(results[0]));
+            var results = Invoke("SimpleMethod", new object[0]);
+            return ((string) (results[0]));
         }
 
-        /// <remarks/>
+        /// <remarks />
         public void SimpleMethodAsync()
         {
-            this.SimpleMethodAsync(null);
+            SimpleMethodAsync(null);
         }
 
-        /// <remarks/>
+        /// <remarks />
         public void SimpleMethodAsync(object userState)
         {
-            if ((this.SimpleMethodOperationCompleted == null))
+            if ((SimpleMethodOperationCompleted == null))
             {
-                this.SimpleMethodOperationCompleted = new System.Threading.SendOrPostCallback(this.OnSimpleMethodOperationCompleted);
+                SimpleMethodOperationCompleted = OnSimpleMethodOperationCompleted;
             }
-            this.InvokeAsync("SimpleMethod", new object[0], this.SimpleMethodOperationCompleted, userState);
+            InvokeAsync("SimpleMethod", new object[0], SimpleMethodOperationCompleted, userState);
         }
 
         private void OnSimpleMethodOperationCompleted(object arg)
         {
-            if ((this.SimpleMethodCompleted != null))
+            if ((SimpleMethodCompleted != null))
             {
-                System.Web.Services.Protocols.InvokeCompletedEventArgs invokeArgs = ((System.Web.Services.Protocols.InvokeCompletedEventArgs)(arg));
-                this.SimpleMethodCompleted(this, new SimpleMethodCompletedEventArgs(invokeArgs.Results, invokeArgs.Error, invokeArgs.Cancelled, invokeArgs.UserState));
+                var invokeArgs = ((InvokeCompletedEventArgs) (arg));
+                SimpleMethodCompleted(this, new SimpleMethodCompletedEventArgs(invokeArgs.Results, invokeArgs.Error, invokeArgs.Cancelled, invokeArgs.UserState));
             }
         }
 
-        /// <remarks/>
+        /// <remarks />
         public new void CancelAsync(object userState)
         {
             base.CancelAsync(userState);
@@ -316,13 +306,13 @@ namespace Middleman.Tests
         private bool IsLocalFileSystemWebService(string url)
         {
             if (((url == null)
-                        || (url == string.Empty)))
+                 || (url == string.Empty)))
             {
                 return false;
             }
-            System.Uri wsUri = new System.Uri(url);
+            var wsUri = new Uri(url);
             if (((wsUri.Port >= 1024)
-                        && (string.Compare(wsUri.Host, "localHost", System.StringComparison.OrdinalIgnoreCase) == 0)))
+                 && (string.Compare(wsUri.Host, "localHost", StringComparison.OrdinalIgnoreCase) == 0)))
             {
                 return true;
             }

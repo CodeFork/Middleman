@@ -72,12 +72,12 @@ namespace Middleman.Server.Connection
             sw.WriteLine();
             sw.Flush();
 
-            byte[] reqHeaderBytes = ms.GetBuffer();
-            string reqHeaders = HeaderEncoding.GetString(reqHeaderBytes);
+            var reqHeaderBytes = ms.GetBuffer();
+            var reqHeaders = HeaderEncoding.GetString(reqHeaderBytes);
 
-            await writeStream.WriteAsync(reqHeaderBytes, 0, (int)ms.Length, ct).ConfigureAwait(false);
+            await writeStream.WriteAsync(reqHeaderBytes, 0, (int) ms.Length, ct).ConfigureAwait(false);
 
-            string reqBody = "";
+            var reqBody = "";
 
             if (request.RequestBody != null)
             {
@@ -85,7 +85,7 @@ namespace Middleman.Server.Connection
 
                 await request.RequestBody.CopyToAsync(rms).ConfigureAwait(false);
                 rms.Position = 0;
-                reqBody += HeaderEncoding.GetString(rms.ToArray(), 0, (int)rms.Length);
+                reqBody += HeaderEncoding.GetString(rms.ToArray(), 0, (int) rms.Length);
                 rms.Position = 0;
 
                 await rms.CopyToAsync(writeStream).ConfigureAwait(false);
