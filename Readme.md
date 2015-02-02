@@ -1,5 +1,7 @@
 # Middleman #
 
+[![Build status](https://ci.appveyor.com/api/projects/status/ym7wn6r7khh2x1lg?svg=true)](https://ci.appveyor.com/project/fallenidol/middleman)
+
 Asynchronous C# 5 / .NET4.5 HTTP intermediary server. Supports SSL for inbound and outbound connections.
 
 ## License ##
