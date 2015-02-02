@@ -76,9 +76,9 @@ namespace Middleman.Server.Response
 
         private sealed class ParseDelegate : IHttpResponseHandler
         {
+            public readonly MiddlemanResponse Response = new MiddlemanResponse();
             public bool HeaderComplete;
             public ArraySegment<byte> ResponseBodyStart;
-            public readonly MiddlemanResponse Response = new MiddlemanResponse();
 
             public void OnResponseBegin()
             {

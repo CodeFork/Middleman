@@ -39,9 +39,8 @@ namespace Middleman.Server.Handlers
 
         public async Task<MiddlemanResponse> GetResponseAsync(MiddlemanContext context, MiddlemanRequest request)
         {
-
             if (request.Headers.AllKeys.Any(
-                    h => h.Equals("Accept-Encoding", StringComparison.InvariantCultureIgnoreCase)))
+                h => h.Equals("Accept-Encoding", StringComparison.InvariantCultureIgnoreCase)))
             {
                 request.Headers.Remove("Accept-Encoding");
             }

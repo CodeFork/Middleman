@@ -84,7 +84,7 @@ namespace Middleman.Tests
                         Assert.IsNotNull(args.Result);
                         Assert.IsTrue(args.Result.Contains("Hello World"));
 
-                        var w = (ManualResetEvent)args.UserState;
+                        var w = (ManualResetEvent) args.UserState;
                         w.Set();
                     };
 

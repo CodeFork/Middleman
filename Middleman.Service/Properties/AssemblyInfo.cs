@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // associated with an assembly.
 
 [assembly: AssemblyTitle("Middleman.Service")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Asynchronous C# 5 / .NET4.5 HTTP intermediary server. Supports SSL for inbound and outbound connections.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Middleman.Service")]
-[assembly: AssemblyCopyright("Copyright ©  2015")]
+[assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

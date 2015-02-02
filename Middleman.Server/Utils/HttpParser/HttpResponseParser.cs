@@ -20,6 +20,8 @@ namespace Middleman.Server.Utils.HttpParser
         private static readonly Regex StatusLineRegex =
             new Regex(@"^HTTP/(?<version>\d\.\d) (?<statusCode>\d{3}) (?<statusDescription>.*)");
 
+        private readonly IHttpResponseHandler _handler;
+        private readonly byte[] _parseBuffer;
         private bool _chunkedTransfer;
         private int _contentLength = -1;
         private int _entityDataWritten;
@@ -29,8 +31,6 @@ namespace Middleman.Server.Utils.HttpParser
         private bool _inHeaders;
         private bool _isCompleted;
         private int _parseBufferWritten;
-        private readonly IHttpResponseHandler _handler;
-        private readonly byte[] _parseBuffer;
 
         public HttpResponseParser(IHttpResponseHandler handler)
         {

@@ -4,15 +4,16 @@ namespace Middleman.Server.Configuration
 {
     public class ListenerConfigurationCollection : ConfigurationElementCollection
     {
-        public ListenerConfigurationCollection()
-        {
+        //public ListenerConfigurationCollection()
+        //{
 
-        }
+        //}
 
         public ListenerConfiguration this[int index]
         {
-            get { 
-                return (ListenerConfiguration)BaseGet(index); 
+            get
+            {
+                return (ListenerConfiguration)BaseGet(index);
             }
             set
             {

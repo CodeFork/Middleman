@@ -65,10 +65,10 @@ namespace Middleman.Server.Request
 
         private sealed class ParseDelegate : IHttpParserHandler
         {
+            public readonly MiddlemanRequest Request = new MiddlemanRequest();
             private string _headerName;
             public bool HeaderComplete;
             public ArraySegment<byte> RequestBodyStart;
-            public readonly MiddlemanRequest Request = new MiddlemanRequest();
 
             void IHttpParserHandler.OnBody(HttpParser parser, ArraySegment<byte> data)
             {

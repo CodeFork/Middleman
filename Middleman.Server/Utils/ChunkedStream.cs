@@ -7,6 +7,7 @@ namespace Middleman.Server.Utils
 {
     internal class ChunkedStream : Stream
     {
+        private readonly Stream _innerStream;
         private int _chunkHeaderPosition;
         private int _chunkLength;
         private int _chunkRead;
@@ -16,7 +17,6 @@ namespace Middleman.Server.Utils
         private bool _inChunkHeader = true;
         private bool _inChunkHeaderLength = true;
         private bool _inChunkTrailingCrLf;
-        private readonly Stream _innerStream;
 
         public ChunkedStream(Stream innerStream)
         {

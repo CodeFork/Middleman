@@ -11,9 +11,9 @@ namespace Middleman.Server.Utils
     /// </summary>
     internal class StartAvailableStream : Stream
     {
-        private bool _inStream;
         private readonly MemoryStream _buffer;
         private readonly Stream _stream;
+        private bool _inStream;
 
         public StartAvailableStream(ArraySegment<byte> startBuffer, Stream continuationStream)
             : this(startBuffer.Array, startBuffer.Offset, startBuffer.Count, continuationStream)

@@ -11,8 +11,8 @@ namespace Middleman.Server.Utils
     /// </summary>
     internal class MaxReadStream : RedirectingStream
     {
-        private int _read;
         private readonly int _maxLength;
+        private int _read;
 
         public MaxReadStream(Stream innerStream, int maxLength)
             : base(innerStream)

@@ -37,7 +37,7 @@ namespace Middleman.Server.Configuration
         {
             get
             {
-                var v = (int) this["ListenPort"];
+                var v = (int)this["ListenPort"];
                 return v;
             }
             set { this["ListenPort"] = value; }
@@ -64,8 +64,8 @@ namespace Middleman.Server.Configuration
         {
             get
             {
-                var v = (string) this["DestinationHost"];
-                return (string) this["DestinationHost"];
+                var v = (string)this["DestinationHost"];
+                return (string)this["DestinationHost"];
             }
             set { this["DestinationHost"] = value; }
         }
@@ -75,8 +75,8 @@ namespace Middleman.Server.Configuration
         {
             get
             {
-                var v = (string) this["SslCertName"];
-                return (string) this["SslCertName"];
+                var v = (string)this["SslCertName"];
+                return (string)this["SslCertName"];
             }
             set { this["SslCertName"] = value; }
         }

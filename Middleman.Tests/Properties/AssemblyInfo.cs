@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // associated with an assembly.
 
 [assembly: AssemblyTitle("Middleman.Tests")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Asynchronous C# 5 / .NET4.5 HTTP intermediary server. Supports SSL for inbound and outbound connections.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Middleman.Tests")]

@@ -26,9 +26,6 @@ namespace Middleman.Server.Server
 
         #region Fields
 
-        private static readonly object SyncRoot = new object();
-
-        private X509Certificate2 _serverCertificate;
         private readonly ListenerConfiguration _lc;
 
         public int Port { get; private set; }
