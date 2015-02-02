@@ -62,6 +62,43 @@ namespace Middleman.Tests
         }
 
         [TestMethod]
+        public void TestHttpAsmxWithBadHeader()
+        {
+            var sm = ServerManager.Servers().StartAll();
+
+            foreach (var s in sm.AllServers)
+            {
+                using (var ws = new BadHeaderTestService())
+                using (var wait = new ManualResetEvent(false))
+                {
+                    var proto = s.UseHttps ? "https" : "http";
+                    ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
+
+                    var result = ws.SimpleMethod();
+                    Assert.IsTrue(result.Contains("Hello World"));
+
+                    ws.SimpleMethodCompleted += (sender, args) =>
+                    {
+                        Assert.IsNull(args.Error);
+                        Assert.IsFalse(args.Cancelled);
+                        Assert.IsNotNull(args.Result);
+                        Assert.IsTrue(args.Result.Contains("Hello World"));
+
+                        var w = (ManualResetEvent)args.UserState;
+                        w.Set();
+                    };
+
+                    ws.SimpleMethodAsync(wait);
+
+                    if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
+                    {
+                        Assert.Fail("No response was received after 5 seconds.");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
         public void TestHttpAsmx()
         {
             var sm = ServerManager.Servers().StartAll();
@@ -317,6 +354,16 @@ namespace Middleman.Tests
                 return true;
             }
             return false;
+        }
+    }
+
+    public class BadHeaderTestService : TestService
+    {
+        protected override WebRequest GetWebRequest(Uri uri)
+        {
+            var wr = base.GetWebRequest(uri);
+            wr.Headers["Accept-Encoding"] = "gzip, application/soap+xml, application/xml, text/xml";
+            return wr;
         }
     }
 }

@@ -39,18 +39,30 @@ namespace Middleman.Server.Handlers
 
         public async Task<MiddlemanResponse> GetResponseAsync(MiddlemanContext context, MiddlemanRequest request)
         {
-            //request.RequestUri += string.Format("{1}{0}={0}", Environment.TickCount, request.RequestUri.Contains("?") ? "&" : "?");
+
+            if (request.Headers.AllKeys.Any(
+                    h => h.Equals("Accept-Encoding", StringComparison.InvariantCultureIgnoreCase)))
+            {
+                request.Headers.Remove("Accept-Encoding");
+            }
+
             if (RewriteHost)
+            {
                 request.Headers["Host"] = _backendUri.Host +
                                           (_backendUri.IsDefaultPort ? string.Empty : ":" + _backendUri.Port);
+            }
 
             if (AddForwardedForHeader)
+            {
                 SetForwardedForHeader(context, request);
+            }
 
             if (RemoveExpectHeader &&
                 request.Headers.AllKeys.Any(
                     h => h.Equals(HttpRequestHeader.Expect.ToString(), StringComparison.InvariantCultureIgnoreCase)))
+            {
                 request.Headers.Remove(HttpRequestHeader.Expect);
+            }
 
             //if (request.Headers.AllKeys.Any(h => h.Equals(HttpRequestHeader.Range.ToString(), StringComparison.InvariantCultureIgnoreCase))) 
             //    request.Headers.Remove(HttpRequestHeader.Range);
