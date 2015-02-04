@@ -16,7 +16,7 @@ namespace Middleman.Server.Handlers
     /// </summary>
     public class ReverseProxyHandler : IMiddlemanRequestHandler
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private readonly Logger Log = LogManager.GetCurrentClassLogger();
         private readonly Uri _backendUri;
 
         public ReverseProxyHandler(string backendUri)
@@ -39,10 +39,27 @@ namespace Middleman.Server.Handlers
 
         public async Task<MiddlemanResponse> GetResponseAsync(MiddlemanContext context, MiddlemanRequest request)
         {
-            if (request.Headers.AllKeys.Any(
-                h => h.Equals("Accept-Encoding", StringComparison.InvariantCultureIgnoreCase)))
+
+            if (request.Headers.AllKeys.Any(h => h.Equals("SOAPAction", StringComparison.InvariantCultureIgnoreCase)))
             {
-                request.Headers.Remove("Accept-Encoding");
+                request.Headers.Remove("SOAPAction");
+            }
+
+            if (request.Headers.AllKeys.Any(
+                h => h.Equals("Accept-Encoding", StringComparison.InvariantCultureIgnoreCase) && request.Headers[h].Contains("/")))
+            {
+                string[] parts = request.Headers["Accept-Encoding"].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Where(s => !s.Contains("/")).ToArray();
+
+                Log.Debug("Fixed bad [Accept-Encoding] header");
+
+                if (parts.Length > 0)
+                {
+                    request.Headers["Accept-Encoding"] = string.Join(",", parts);
+                }
+                else
+                {
+                    request.Headers.Remove("Accept-Encoding");
+                }
             }
 
             if (RewriteHost)

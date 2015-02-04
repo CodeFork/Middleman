@@ -9,7 +9,7 @@ namespace Middleman.Server.Context
 {
     public class MiddlemanContext
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private readonly Logger Log = LogManager.GetCurrentClassLogger();
         private static long _contextCounter;
 
         public MiddlemanContext(InboundConnection client)
@@ -17,7 +17,7 @@ namespace Middleman.Server.Context
             InboundConnection = client;
             ContextId = Interlocked.Increment(ref _contextCounter);
 
-            Log.Info("Creating context ({1}) for connection from {0}.", client.RemoteEndPoint, ContextId);
+            Log.Debug("Creating context ({1}) for connection from {0}.", client.RemoteEndPoint, ContextId);
         }
 
         public long ContextId { get; private set; }
@@ -48,7 +48,7 @@ namespace Middleman.Server.Context
                 }
                 else if (OutboundConnection.IsSecure != secure)
                 {
-                    Log.Info("{0}: Current outbound connection {0} secure, can't reuse",
+                    Log.Debug("{0}: Current outbound connection {0} secure, can't reuse",
                         InboundConnection.RemoteEndPoint);
                     OutboundConnection.Close();
                     OutboundConnection = null;

@@ -9,7 +9,7 @@ namespace Middleman.Server.Server
 {
     public class Server
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         #region Constructors
 
@@ -115,7 +115,7 @@ namespace Middleman.Server.Server
             {
                 foreach (var cert in sslStore.Certificates)
                 {
-                    Log.Debug(sslStore.Name + " // " + cert.Subject);
+                    //Log.Debug(sslStore.Name + " // " + cert.Subject);
                     if (cert.Subject.ToLowerInvariant().Contains(CertSearchString.ToLowerInvariant()))
                     {
                         returnCert = cert;

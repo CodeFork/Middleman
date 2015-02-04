@@ -11,7 +11,7 @@ namespace Middleman.Server.Request
 {
     internal class MiddlemanRequestParser
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         public async Task<MiddlemanRequest> ParseAsync(InboundConnection conn, Stream stream)
         {
@@ -39,7 +39,7 @@ namespace Middleman.Server.Request
             }
 
             Log.Debug("{0}: RequestParser read enough ({1} bytes)", conn.RemoteEndPoint, readTotal);
-            Log.Debug(requestString);
+            Log.Info("ORIGINAL REQUEST: " + Environment.NewLine + requestString + Environment.NewLine);
 
             if (readTotal == 0)
                 return null;

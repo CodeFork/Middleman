@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Threading;
 using Middleman.Server.Configuration;
 using NLog;
+using System.Net;
 
 namespace Middleman.Server.Server
 {
@@ -18,7 +19,7 @@ namespace Middleman.Server.Server
 
         private ServerManager()
         {
-            //ServicePointManager.Expect100Continue = false;
+
         }
 
         public int ServerCount

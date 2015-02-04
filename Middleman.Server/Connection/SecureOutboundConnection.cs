@@ -9,7 +9,7 @@ namespace Middleman.Server.Connection
 {
     public class SecureOutboundConnection : OutboundConnection
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         public SecureOutboundConnection(string targetHost, IPEndPoint ep)
             : base(ep)
@@ -31,11 +31,11 @@ namespace Middleman.Server.Connection
 
             SslStream = CreateSslStream(NetworkStream);
 
-            Log.Info("Authenticating: {0}.", TargetHost ?? "<NULL>");
+            Log.Debug("Authenticating: {0}.", TargetHost ?? "<NULL>");
 
             await SslStream.AuthenticateAsClientAsync(TargetHost);
 
-            Log.Info("Authenticated.");
+            Log.Debug("Authenticated.");
         }
 
         protected virtual SslStream CreateSslStream(Stream innerStream)

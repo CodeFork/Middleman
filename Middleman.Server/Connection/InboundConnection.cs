@@ -14,7 +14,7 @@ namespace Middleman.Server.Connection
 {
     public class InboundConnection : MiddlemanConnection
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private readonly Logger Log = LogManager.GetCurrentClassLogger();
         private static long _connectionCounter;
         protected static readonly Encoding HeaderEncoding = Encoding.GetEncoding("us-ascii");
         protected TcpClient Connection;
@@ -23,7 +23,7 @@ namespace Middleman.Server.Connection
 
         public InboundConnection(TcpClient connection)
         {
-            Log.Info("Constructing new inbound connection from [{0}] to [{1}].", connection.Client.RemoteEndPoint, connection.Client.LocalEndPoint);
+            Log.Debug("Constructing new inbound connection from [{0}] to [{1}].", connection.Client.RemoteEndPoint, connection.Client.LocalEndPoint);
 
             Connection = connection;
             NetworkStream = connection.GetStream();
@@ -158,7 +158,7 @@ namespace Middleman.Server.Connection
                 Log.Debug("{0}: Wrote response body ({1:N0} bytes) to client", RemoteEndPoint, written);
             }
 
-            Log.Info(responseHeaders.Trim() + Environment.NewLine + Environment.NewLine + responseBody.Trim());
+            Log.Info("RESPONSE TO CLIENT: " + Environment.NewLine + responseHeaders.Trim() + Environment.NewLine + Environment.NewLine + responseBody.Trim() + Environment.NewLine);
 
             await writeStream.FlushAsync(ct).ConfigureAwait(false);
         }

@@ -10,7 +10,7 @@ namespace Middleman.Server.Response
 {
     internal class MiddlemanResponseParser
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         public async Task<MiddlemanResponse> ParseAsync(Stream stream)
         {
@@ -35,7 +35,7 @@ namespace Middleman.Server.Response
             {
                 responseString = responseString.Substring(0, responseString.IndexOf(Environment.NewLine + Environment.NewLine)).Trim();
             }
-            Log.Debug(responseString);
+            Log.Info("RESPONSE FROM SERVER: " + Environment.NewLine + responseString + Environment.NewLine);
 
             if (!del.HeaderComplete)
                 throw new FormatException("Parse error in response");

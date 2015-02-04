@@ -13,14 +13,14 @@ namespace Middleman.Server.Connection
 {
     public class OutboundConnection : MiddlemanConnection
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private readonly Logger Log = LogManager.GetCurrentClassLogger();
         protected static readonly Encoding HeaderEncoding = Encoding.GetEncoding("us-ascii");
         protected TcpClient Connection;
         protected NetworkStream NetworkStream;
 
         public OutboundConnection(IPEndPoint endPoint)
         {
-            Log.Info("Constructing new outbound connection to [{0}].", endPoint);
+            Log.Debug("Constructing new outbound connection to [{0}].", endPoint);
 
             RemoteEndPoint = endPoint;
             Connection = new TcpClient();
@@ -91,7 +91,7 @@ namespace Middleman.Server.Connection
                 await rms.CopyToAsync(writeStream).ConfigureAwait(false);
             }
 
-            Log.Info(reqHeaders.Trim() + Environment.NewLine + Environment.NewLine + reqBody.Trim());
+            Log.Info("FORWARDED REQUEST: " + Environment.NewLine + reqHeaders.Trim() + Environment.NewLine + Environment.NewLine + reqBody.Trim() + Environment.NewLine);
 
             await writeStream.FlushAsync(ct).ConfigureAwait(false);
         }
