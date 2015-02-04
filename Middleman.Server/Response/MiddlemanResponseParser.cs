@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Middleman.Server.Utils;
@@ -10,7 +12,7 @@ namespace Middleman.Server.Response
 {
     internal class MiddlemanResponseParser
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         public async Task<MiddlemanResponse> ParseAsync(Stream stream)
         {
@@ -23,7 +25,7 @@ namespace Middleman.Server.Response
             var responseString = "";
             while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
-                responseString += Encoding.GetEncoding("us-ascii").GetString(buffer, 0, read);
+                responseString += Encoding.ASCII.GetString(buffer.Where(x => x != 0).ToArray(), 0, read);
 
                 parser.Execute(buffer, 0, read);
 
@@ -35,10 +37,12 @@ namespace Middleman.Server.Response
             {
                 responseString = responseString.Substring(0, responseString.IndexOf(Environment.NewLine + Environment.NewLine)).Trim();
             }
-            Log.Info("RESPONSE FROM SERVER: " + Environment.NewLine + responseString + Environment.NewLine);
+            Log.Info("RESPONSE FROM SERVER: " + Environment.NewLine + responseString.Trim() + Environment.NewLine);
 
             if (!del.HeaderComplete)
+            {
                 throw new FormatException("Parse error in response");
+            }
 
             var response = del.Response;
             var cl = response.ContentLength;
@@ -55,6 +59,10 @@ namespace Middleman.Server.Response
                     response.ResponseBody = new MaxReadStream(stream, cl);
                 }
             }
+            //else if ((int)response.StatusCode == 100)
+            //{
+            //    throw new Exception();
+            //}
             else if (response.Headers["Transfer-Encoding"] == "chunked")
             {
                 if (response.Headers["Connection"] == "close")

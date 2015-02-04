@@ -9,7 +9,7 @@ namespace Middleman.Server.Server
 {
     public class Server
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         #region Constructors
 
@@ -49,9 +49,9 @@ namespace Middleman.Server.Server
             var endPoint = new IPEndPoint(IPAddress.Parse(_lc.ListenIp), Port);
             var handler = new ReverseProxyHandler(DestinationWebRoot);
 
-            handler.AddForwardedForHeader = false;
             handler.RewriteHost = true;
-            handler.RemoveExpectHeader = true;
+            handler.AddForwardedForHeader = false;
+            handler.RemoveExpectHeader = false;
 
             if (UseHttps)
             {

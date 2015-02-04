@@ -1,4 +1,6 @@
-﻿namespace Middleman.Server.Connection
+﻿using System;
+
+namespace Middleman.Server.Connection
 {
     public abstract class MiddlemanConnection
     {

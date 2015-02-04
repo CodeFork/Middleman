@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using HttpMachine;
@@ -11,7 +13,7 @@ namespace Middleman.Server.Request
 {
     internal class MiddlemanRequestParser
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         public async Task<MiddlemanRequest> ParseAsync(InboundConnection conn, Stream stream)
         {
@@ -26,9 +28,9 @@ namespace Middleman.Server.Request
 
             var requestString = "";
 
-            while ((read = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
+            while (stream != null && (read = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
             {
-                requestString += Encoding.GetEncoding("us-ascii").GetString(buffer, 0, read);
+                requestString += Encoding.ASCII.GetString(buffer.Where(x => x != 0).ToArray(), 0, read);
                 readTotal += read;
 
                 if (parser.Execute(new ArraySegment<byte>(buffer, 0, read)) != read)
@@ -37,6 +39,8 @@ namespace Middleman.Server.Request
                 if (del.HeaderComplete)
                     break;
             }
+
+            //conn.MustClose = del.Request.Headers.AllKeys.Any(h => h.Equals("Connection", StringComparison.InvariantCultureIgnoreCase) && del.Request.Headers[h].Equals("Close", StringComparison.InvariantCultureIgnoreCase));
 
             Log.Debug("{0}: RequestParser read enough ({1} bytes)", conn.RemoteEndPoint, readTotal);
             Log.Info("ORIGINAL REQUEST: " + Environment.NewLine + requestString + Environment.NewLine);
@@ -50,10 +54,11 @@ namespace Middleman.Server.Request
             var request = del.Request;
 
             request.ProtocolVersion = new Version(parser.MajorVersion, parser.MinorVersion);
+            conn.RequestVersion = request.ProtocolVersion;
 
             var cl = request.ContentLength;
 
-            if (cl > 0)
+            if (cl > 0 && stream != null)
             {
                 request.RequestBody = del.RequestBodyStart.Count > 0
                     ? new MaxReadStream(new StartAvailableStream(del.RequestBodyStart, stream), cl)

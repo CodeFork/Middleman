@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Reflection;
@@ -14,12 +15,28 @@ namespace Middleman.Tests
     public class WebServiceTests
     {
         private static IISExpress _iisExpress;
+        private static ServerManager _serviceManager;
+
+        [TestInitialize]
+        public void TestInit()
+        {
+            string logDir = new FileInfo(Assembly.GetExecutingAssembly().Location).DirectoryName;
+            string logFile = string.Format("Middleman.{0}.log", DateTime.Now.ToString("yyyy-MM-dd"));
+            string logFilepath = Path.Combine(logDir, logFile);
+            if (File.Exists(logFilepath))
+            {
+                File.Delete(logFilepath);
+            }
+        }
 
         [ClassInitialize]
         public static void Init(TestContext ctx)
         {
+            ServicePointManager.Expect100Continue = false;
             ServicePointManager.CheckCertificateRevocationList = false;
             ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, errors) => { return true; };
+
+            _serviceManager = ServerManager.Servers().StartAll();
 
             var iexps = Process.GetProcessesByName("IISExpress");
             foreach (var iexp in iexps)
@@ -51,17 +68,22 @@ namespace Middleman.Tests
             {
                 iexp.Kill();
             }
+
+            if (_serviceManager != null)
+            {
+                _serviceManager.Stop();
+                _serviceManager = null;
+            }
         }
 
         [TestMethod]
         public void TestHttpAsmxWithBadHeader()
         {
-            var sm = ServerManager.Servers().StartAll();
-
-            foreach (var s in sm.AllServers)
+            foreach (var s in _serviceManager.AllServers)
             {
+                Console.WriteLine(s.Port);
                 using (var ws = new BadHeaderTestService())
-                using (var wait = new ManualResetEvent(false))
+                //using (var wait = new ManualResetEvent(false))
                 {
                     var proto = s.UseHttps ? "https" : "http";
                     ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
@@ -69,23 +91,24 @@ namespace Middleman.Tests
                     var result = ws.SimpleMethod();
                     Assert.IsTrue(result.Contains("Hello World"));
 
-                    ws.SimpleMethodCompleted += (sender, args) =>
-                    {
-                        Assert.IsNull(args.Error);
-                        Assert.IsFalse(args.Cancelled);
-                        Assert.IsNotNull(args.Result);
-                        Assert.IsTrue(args.Result.Contains("Hello World"));
+                    //ws.SimpleMethodCompleted += (sender, args) =>
+                    //{
+                    //    Assert.IsNull(args.Error);
+                    //    Assert.IsFalse(args.Cancelled);
+                    //    Assert.IsNotNull(args.Result);
+                    //    Assert.IsTrue(args.Result.Contains("Hello World"));
 
-                        var w = (ManualResetEvent)args.UserState;
-                        w.Set();
-                    };
+                    //    var w = (ManualResetEvent)args.UserState;
+                    //    w.Set();
+                    //};
 
-                    ws.SimpleMethodAsync(wait);
+                    //ws.SimpleMethodAsync(wait);
 
-                    if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
-                    {
-                        Assert.Fail("No response was received after 5 seconds.");
-                    }
+                    //if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
+                    //{
+                    //    Assert.Fail("No response was received after 5 seconds.");
+                    //}
+                    ws.Dispose();
                 }
             }
         }
@@ -93,12 +116,11 @@ namespace Middleman.Tests
         [TestMethod]
         public void TestHttpAsmx()
         {
-            var sm = ServerManager.Servers().StartAll();
-
-            foreach (var s in sm.AllServers)
+            foreach (var s in _serviceManager.AllServers)
             {
+                Debug.WriteLine(s.Port);
                 using (var ws = new TestService())
-                using (var wait = new ManualResetEvent(false))
+                //using (var wait = new ManualResetEvent(false))
                 {
                     var proto = s.UseHttps ? "https" : "http";
                     ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
@@ -106,23 +128,25 @@ namespace Middleman.Tests
                     var result = ws.SimpleMethod();
                     Assert.IsTrue(result.Contains("Hello World"));
 
-                    ws.SimpleMethodCompleted += (sender, args) =>
-                    {
-                        Assert.IsNull(args.Error);
-                        Assert.IsFalse(args.Cancelled);
-                        Assert.IsNotNull(args.Result);
-                        Assert.IsTrue(args.Result.Contains("Hello World"));
+                    //ws.SimpleMethodCompleted += (sender, args) =>
+                    //{
+                    //    Assert.IsNull(args.Error);
+                    //    Assert.IsFalse(args.Cancelled);
+                    //    Assert.IsNotNull(args.Result);
+                    //    Assert.IsTrue(args.Result.Contains("Hello World"));
 
-                        var w = (ManualResetEvent)args.UserState;
-                        w.Set();
-                    };
+                    //    var w = (ManualResetEvent)args.UserState;
+                    //    w.Set();
+                    //};
 
-                    ws.SimpleMethodAsync(wait);
+                    //ws.SimpleMethodAsync(wait);
 
-                    if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
-                    {
-                        Assert.Fail("No response was received after 5 seconds.");
-                    }
+                    //if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
+                    //{
+                    //    Assert.Fail("No response was received after 5 seconds.");
+                    //}
+
+                    ws.Dispose();
                 }
             }
         }
@@ -130,40 +154,97 @@ namespace Middleman.Tests
         [TestMethod]
         public void TestSingleHttpAsmx()
         {
-            File.Delete(@"C:\Users\paul.mcilreavy\Dropbox\Development\Code\Middleman\Middleman.Tests\bin\Debug\Middleman.2015-02-04.log");
-            var s = ServerManager.Servers().StartAll().AllServers[0];
+            var s = _serviceManager.AllServers[0];
 
-            using (var ws = new BadHeaderTestService())
-            using (var wait = new ManualResetEvent(false))
+            using (var ws = new TestService())
             {
                 var proto = s.UseHttps ? "https" : "http";
                 ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
+                //ws.UserAgent = "Java1.4.2_10";
+
                 var result = ws.SimpleMethod();
                 Assert.IsTrue(result.Contains("Hello World"));
+
+                ws.Dispose();
+            }
+        }
+
+        [TestMethod]
+        public void TestSingleHttpAsmxWithBadHeader()
+        {
+            var s = _serviceManager.AllServers[0];
+
+            using (var ws = new BadHeaderTestService())
+            {
+                var proto = s.UseHttps ? "https" : "http";
+                ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
+                //ws.UserAgent = "Java1.4.2_10";
+
+                var result = ws.SimpleMethod();
+                Assert.IsTrue(result.Contains("Hello World"));
+
+                ws.Dispose();
+            }
+        }
+
+        [TestMethod]
+        public void TestSingleHttpAsmxWithHttp10()
+        {
+            var s = _serviceManager.AllServers[0];
+
+            using (var ws = new Http10TestService())
+            {
+                var proto = s.UseHttps ? "https" : "http";
+                ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
+                //ws.UserAgent = "Java1.4.2_10";
+
+                var result = ws.SimpleMethod();
+                Assert.IsTrue(result.Contains("Hello World"));
+
+                ws.Dispose();
             }
         }
 
 
         [TestMethod]
+        public void TestSingleHttpAsmxWithHttp10NoKeepAlive()
+        {
+            var s = _serviceManager.AllServers[0];
+
+            using (var ws = new Http10NoKeepAliveTestService())
+            {
+                var proto = s.UseHttps ? "https" : "http";
+                ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
+                //ws.UserAgent = "Java1.4.2_10";
+
+                var result = ws.SimpleMethod();
+                Assert.IsTrue(result.Contains("Hello World"));
+
+                ws.Dispose();
+            }
+        }
+
+        [TestMethod]
         public void TestSingleHttpWeb()
         {
-            var sm = ServerManager.Servers().StartAll();
-            var s = sm.AllServers[0];
+            var s = _serviceManager.AllServers[0];
 
             var protocol = s.UseHttps ? "https" : "http";
 
-            var html = new WebClient().DownloadString(string.Format("{1}://localhost:{0}/", s.Port, protocol));
+            using (var wc = new WebClient())
+            {
+                var html = wc.DownloadString(string.Format("{1}://localhost:{0}/", s.Port, protocol));
 
-            Assert.IsTrue(html.Contains("Hello World"));
+                Assert.IsTrue(html.Contains("Hello World"));
+            }
         }
 
         [TestMethod]
         public void TestHttpWeb()
         {
-            var sm = ServerManager.Servers().StartAll();
-
-            foreach (var s in sm.AllServers)
+            foreach (var s in _serviceManager.AllServers)
             {
+                Console.WriteLine(s.Port);
                 var protocol = s.UseHttps ? "https" : "http";
 
                 var html = new WebClient().DownloadString(string.Format("{1}://localhost:{0}/", s.Port, protocol));
@@ -175,12 +256,11 @@ namespace Middleman.Tests
         [TestMethod]
         public void TestHttpAsmxWse()
         {
-            var sm = ServerManager.Servers().StartAll();
-
-            foreach (var s in sm.AllServers)
+            foreach (var s in _serviceManager.AllServers)
             {
+                Console.WriteLine(s.Port);
                 using (var ws = new TestServiceWse())
-                using (var wait = new ManualResetEvent(false))
+                //using (var wait = new ManualResetEvent(false))
                 {
                     var proto = s.UseHttps ? "https" : "http";
                     ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
@@ -188,23 +268,24 @@ namespace Middleman.Tests
                     var result = ws.SimpleMethod();
                     Assert.IsTrue(result.Contains("Hello World"));
 
-                    ws.SimpleMethodCompleted += (sender, args) =>
-                    {
-                        Assert.IsNull(args.Error);
-                        Assert.IsFalse(args.Cancelled);
-                        Assert.IsNotNull(args.Result);
-                        Assert.IsTrue(args.Result.Contains("Hello World"));
+                    //ws.SimpleMethodCompleted += (sender, args) =>
+                    //{
+                    //    Assert.IsNull(args.Error);
+                    //    Assert.IsFalse(args.Cancelled);
+                    //    Assert.IsNotNull(args.Result);
+                    //    Assert.IsTrue(args.Result.Contains("Hello World"));
 
-                        var w = (ManualResetEvent)args.UserState;
-                        w.Set();
-                    };
+                    //    var w = (ManualResetEvent)args.UserState;
+                    //    w.Set();
+                    //};
 
-                    ws.SimpleMethodAsync(wait);
+                    //ws.SimpleMethodAsync(wait);
 
-                    if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
-                    {
-                        Assert.Fail("No response was received after 5 seconds.");
-                    }
+                    //if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
+                    //{
+                    //    Assert.Fail("No response was received after 5 seconds.");
+                    //}
+                    ws.Dispose();
                 }
             }
         }
@@ -212,19 +293,23 @@ namespace Middleman.Tests
         [TestMethod]
         public void TestHttpWebHighVolume()
         {
-            var sm = ServerManager.Servers().StartAll();
-
-            foreach (var s in sm.AllServers)
+            using (var wc = new WebClient())
             {
-                for (var i = 0; i < 25; i++)
+                foreach (var s in _serviceManager.AllServers)
                 {
-                    var protocol = s.UseHttps ? "https" : "http";
+                    Console.WriteLine(s.Port);
+                    for (var i = 0; i < 25; i++)
+                    {
+                        var protocol = s.UseHttps ? "https" : "http";
 
-                    var html = new WebClient().DownloadString(string.Format("{1}://localhost:{0}/", s.Port, protocol));
+                        var html = wc.DownloadString(string.Format("{1}://localhost:{0}/", s.Port, protocol));
 
-                    Debug.WriteLine("{1}://localhost:{0}/", s.Port, protocol);
+                        Debug.WriteLine("{1}://localhost:{0}/", s.Port, protocol);
 
-                    Assert.IsTrue(html.Contains("Hello World"));
+                        Assert.IsTrue(html.Contains("Hello World"));
+
+
+                    }
                 }
             }
         }
@@ -232,14 +317,12 @@ namespace Middleman.Tests
         [TestMethod]
         public void TestHttpAsmxHighVolume()
         {
-            var sm = ServerManager.Servers().StartAll();
-
-            foreach (var s in sm.AllServers)
+            foreach (var s in _serviceManager.AllServers)
             {
                 for (var i = 0; i < 25; i++)
                 {
                     using (var ws = new TestService())
-                    using (var wait = new ManualResetEvent(false))
+                    //using (var wait = new ManualResetEvent(false))
                     {
                         var proto = s.UseHttps ? "https" : "http";
                         ws.Url = proto + "://127.0.0.1:" + s.Port + "/TestService.asmx";
@@ -247,23 +330,24 @@ namespace Middleman.Tests
                         var result = ws.SimpleMethod();
                         Assert.IsTrue(result.Contains("Hello World"));
 
-                        ws.SimpleMethodCompleted += (sender, args) =>
-                        {
-                            Assert.IsNull(args.Error);
-                            Assert.IsFalse(args.Cancelled);
-                            Assert.IsNotNull(args.Result);
-                            Assert.IsTrue(args.Result.Contains("Hello World"));
+                        //ws.SimpleMethodCompleted += (sender, args) =>
+                        //{
+                        //    Assert.IsNull(args.Error);
+                        //    Assert.IsFalse(args.Cancelled);
+                        //    Assert.IsNotNull(args.Result);
+                        //    Assert.IsTrue(args.Result.Contains("Hello World"));
 
-                            var w = (ManualResetEvent)args.UserState;
-                            w.Set();
-                        };
+                        //    var w = (ManualResetEvent)args.UserState;
+                        //    w.Set();
+                        //};
 
-                        ws.SimpleMethodAsync(wait);
+                        //ws.SimpleMethodAsync(wait);
 
-                        if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
-                        {
-                            Assert.Fail("No response was received after 5 seconds.");
-                        }
+                        //if (!wait.WaitOne(Debugger.IsAttached ? -1 : 5000))
+                        //{
+                        //    Assert.Fail("No response was received after 5 seconds.");
+                        //}
+                        ws.Dispose();
                     }
                 }
             }

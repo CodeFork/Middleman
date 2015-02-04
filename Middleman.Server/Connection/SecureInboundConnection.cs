@@ -10,7 +10,7 @@ namespace Middleman.Server.Connection
 {
     public class SecureInboundConnection : InboundConnection
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         private readonly X509Certificate _certificate;
 
         public SecureInboundConnection(TcpClient client, X509Certificate certificate)
@@ -32,11 +32,11 @@ namespace Middleman.Server.Connection
 
             SslStream = CreateSslStream(NetworkStream);
 
-            Log.Debug("Authenticating using certificate: {0}.", _certificate == null ? "<NULL>" : _certificate.Subject);
+            Log.Info("Authenticating using certificate: {0}.", _certificate == null ? "<NULL>" : _certificate.Subject);
 
             await SslStream.AuthenticateAsServerAsync(_certificate);
 
-            Log.Debug("Authenticated.");
+            Log.Info("Authenticated.");
         }
 
         protected virtual SslStream CreateSslStream(Stream innerStream)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -13,8 +14,8 @@ namespace Middleman.Server.Connection
 {
     public class OutboundConnection : MiddlemanConnection
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
-        protected static readonly Encoding HeaderEncoding = Encoding.GetEncoding("us-ascii");
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        protected static readonly Encoding HeaderEncoding = Encoding.ASCII;//Encoding.GetEncoding("us-ascii");
         protected TcpClient Connection;
         protected NetworkStream NetworkStream;
 
@@ -61,21 +62,25 @@ namespace Middleman.Server.Connection
         {
             var writeStream = GetWriteStream();
 
-            var ms = new MemoryStream();
-            var sw = new StreamWriter(ms, HeaderEncoding) {NewLine = "\r\n"};
+            var ms = new MemoryStream(0);
+            var sw = new StreamWriter(ms, HeaderEncoding) { NewLine = "\r\n" };
 
             sw.WriteLine("{0} {1} HTTP/1.{2}", request.Method, request.RequestUri, request.ProtocolVersion.Minor);
 
             for (var i = 0; i < request.Headers.Count; i++)
-                sw.WriteLine("{0}: {1}", request.Headers.GetKey(i), request.Headers.Get(i));
+            {
+                var key = request.Headers.GetKey(i);
+                var val = request.Headers.Get(i);
+                sw.WriteLine("{0}: {1}", key, val);
+            }
 
             sw.WriteLine();
             sw.Flush();
 
             var reqHeaderBytes = ms.GetBuffer();
-            var reqHeaders = HeaderEncoding.GetString(reqHeaderBytes);
+            var reqHeaders = HeaderEncoding.GetString(reqHeaderBytes.Where(x => x != 0).ToArray());
 
-            await writeStream.WriteAsync(reqHeaderBytes, 0, (int) ms.Length, ct).ConfigureAwait(false);
+            await writeStream.WriteAsync(reqHeaderBytes, 0, (int)ms.Length, ct).ConfigureAwait(false);
 
             var reqBody = "";
 
@@ -85,13 +90,14 @@ namespace Middleman.Server.Connection
 
                 await request.RequestBody.CopyToAsync(rms).ConfigureAwait(false);
                 rms.Position = 0;
-                reqBody += HeaderEncoding.GetString(rms.ToArray(), 0, (int) rms.Length);
+                var bytes = rms.ToArray();
+                reqBody += HeaderEncoding.GetString(bytes.Where(x => x != 0).ToArray(), 0, (int)rms.Length);
                 rms.Position = 0;
 
                 await rms.CopyToAsync(writeStream).ConfigureAwait(false);
             }
 
-            Log.Info("FORWARDED REQUEST: " + Environment.NewLine + reqHeaders.Trim() + Environment.NewLine + Environment.NewLine + reqBody.Trim() + Environment.NewLine);
+            Log.Info("FORWARDED REQUEST: " + Environment.NewLine + (reqHeaders + reqBody).Trim() + Environment.NewLine);
 
             await writeStream.FlushAsync(ct).ConfigureAwait(false);
         }

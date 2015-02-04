@@ -9,7 +9,7 @@ namespace Middleman.Server.Connection
 {
     public class SecureOutboundConnection : OutboundConnection
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         public SecureOutboundConnection(string targetHost, IPEndPoint ep)
             : base(ep)

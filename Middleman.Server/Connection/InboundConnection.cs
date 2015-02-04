@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -14,12 +15,13 @@ namespace Middleman.Server.Connection
 {
     public class InboundConnection : MiddlemanConnection
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         private static long _connectionCounter;
-        protected static readonly Encoding HeaderEncoding = Encoding.GetEncoding("us-ascii");
+        protected static readonly Encoding HeaderEncoding = Encoding.ASCII;//Encoding.GetEncoding("us-ascii");
         protected TcpClient Connection;
         public long ConnectionId;
         protected NetworkStream NetworkStream;
+        //public bool MustClose = false;
 
         public InboundConnection(TcpClient connection)
         {
@@ -28,8 +30,13 @@ namespace Middleman.Server.Connection
             Connection = connection;
             NetworkStream = connection.GetStream();
             ConnectionId = Interlocked.Increment(ref _connectionCounter);
-            RemoteEndPoint = (IPEndPoint) connection.Client.RemoteEndPoint;
+            RemoteEndPoint = (IPEndPoint)connection.Client.RemoteEndPoint;
         }
+
+        //public bool DataAvailable
+        //{
+        //    get { return NetworkStream != null ? NetworkStream.DataAvailable : false; }
+        //}
 
         public override bool IsSecure
         {
@@ -45,7 +52,7 @@ namespace Middleman.Server.Connection
 
                 try
                 {
-                    return !(Connection.Client.Poll(1, SelectMode.SelectRead) && Connection.Client.Available == 0);
+                    return !(Connection.Client.Poll(100, SelectMode.SelectRead) && Connection.Client.Available == 0);
                 }
                 catch (SocketException)
                 {
@@ -94,19 +101,26 @@ namespace Middleman.Server.Connection
                 .ConfigureAwait(false);
         }
 
+        public Version RequestVersion;
+
         public async Task WriteResponseAsync(MiddlemanResponse response, CancellationToken ct)
         {
             var ms = new MemoryStream();
-            var sw = new StreamWriter(ms, HeaderEncoding) {NewLine = "\r\n"};
+            var sw = new StreamWriter(ms, HeaderEncoding) { NewLine = "\r\n" };
 
-            sw.WriteLine("HTTP/{0} {1} {2}", response.ProtocolVersion, response.StatusCode, response.StatusDescription);
+            sw.WriteLine("HTTP/{0} {1} {2}", RequestVersion, response.StatusCode, response.StatusDescription);
 
             for (var i = 0; i < response.Headers.Count; i++)
             {
                 var key = response.Headers.GetKey(i);
                 var val = response.Headers.Get(i);
 
-                sw.WriteLine("{0}: {1}", key, val);
+                if (!key.Equals("X-AspNet-Version", StringComparison.InvariantCultureIgnoreCase) &&
+                    !key.Equals("X-SourceFiles", StringComparison.InvariantCultureIgnoreCase) &&
+                    !key.Equals("X-Powered-By", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    sw.WriteLine("{0}: {1}", key, val);
+                }
             }
 
             sw.WriteLine();
@@ -117,7 +131,7 @@ namespace Middleman.Server.Connection
             ms.Position = 0;
 
             var responseHeaderBytes = ms.ToArray();
-            var responseHeaders = HeaderEncoding.GetString(responseHeaderBytes);
+            var responseHeaders = HeaderEncoding.GetString(responseHeaderBytes.Where(x => x != 0).ToArray());
 
             await writeStream.WriteAsync(responseHeaderBytes, 0, responseHeaderBytes.Length, ct).ConfigureAwait(false);
             Log.Debug("{0}: Wrote headers ({1}b)", RemoteEndPoint, ms.Length);
@@ -134,7 +148,7 @@ namespace Middleman.Server.Connection
                     (read = await response.ResponseBody.ReadAsync(buffer, 0, buffer.Length, ct).ConfigureAwait(false)) >
                     0)
                 {
-                    responseBody += HeaderEncoding.GetString(buffer, 0, read);
+                    responseBody += HeaderEncoding.GetString(buffer.Where(x => x != 0).ToArray(), 0, read);
 
                     written += read;
                     Log.Debug("{0}: Read {1:N0} bytes from response body", RemoteEndPoint, read);
@@ -158,7 +172,7 @@ namespace Middleman.Server.Connection
                 Log.Debug("{0}: Wrote response body ({1:N0} bytes) to client", RemoteEndPoint, written);
             }
 
-            Log.Info("RESPONSE TO CLIENT: " + Environment.NewLine + responseHeaders.Trim() + Environment.NewLine + Environment.NewLine + responseBody.Trim() + Environment.NewLine);
+            Log.Info("RESPONSE TO CLIENT: " + Environment.NewLine + (responseHeaders.Trim() + Environment.NewLine + Environment.NewLine + responseBody.Trim()).Trim() + Environment.NewLine);
 
             await writeStream.FlushAsync(ct).ConfigureAwait(false);
         }

@@ -16,7 +16,7 @@ namespace Middleman.Server.Handlers
     /// </summary>
     public class ReverseProxyHandler : IMiddlemanRequestHandler
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         private readonly Uri _backendUri;
 
         public ReverseProxyHandler(string backendUri)
@@ -29,8 +29,8 @@ namespace Middleman.Server.Handlers
             _backendUri = backendUri;
 
             RewriteHost = true;
-            AddForwardedForHeader = true;
-            RemoveExpectHeader = true;
+            AddForwardedForHeader = false;
+            RemoveExpectHeader = false;
         }
 
         public bool RewriteHost { get; set; }
@@ -40,10 +40,15 @@ namespace Middleman.Server.Handlers
         public async Task<MiddlemanResponse> GetResponseAsync(MiddlemanContext context, MiddlemanRequest request)
         {
 
-            if (request.Headers.AllKeys.Any(h => h.Equals("SOAPAction", StringComparison.InvariantCultureIgnoreCase)))
+            if (request.Headers.AllKeys.Any(h => h.Equals("VsDebuggerCausalityData", StringComparison.InvariantCultureIgnoreCase)))
             {
-                request.Headers.Remove("SOAPAction");
+                request.Headers.Remove("VsDebuggerCausalityData");
             }
+
+            //if (request.Headers.AllKeys.Any(h => h.Equals("SOAPAction", StringComparison.InvariantCultureIgnoreCase)))
+            //{
+            //    request.Headers.Remove("SOAPAction");
+            //}
 
             if (request.Headers.AllKeys.Any(
                 h => h.Equals("Accept-Encoding", StringComparison.InvariantCultureIgnoreCase) && request.Headers[h].Contains("/")))

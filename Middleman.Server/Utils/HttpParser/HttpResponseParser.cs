@@ -123,7 +123,7 @@ namespace Middleman.Server.Utils.HttpParser
         private void ParseHeaders(byte[] buffer, int offset, int count)
         {
             using (var ms = new MemoryStream(buffer, offset, count))
-            using (var sr = new StreamReader(ms, Encoding.GetEncoding("us-ascii")))
+            using (var sr = new StreamReader(ms, Encoding.ASCII))
             {
                 ParseStatusLine(sr.ReadLine());
 

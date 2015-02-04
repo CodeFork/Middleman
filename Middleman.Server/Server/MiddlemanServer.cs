@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -12,7 +14,7 @@ namespace Middleman.Server.Server
 {
     public class MiddlemanServer
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         private readonly IMiddlemanRequestHandler _handler;
         private readonly TcpListener _server;
 
@@ -36,12 +38,14 @@ namespace Middleman.Server.Server
 
                 var client = await _server.AcceptTcpClientAsync();
 
+                //Log.Info("{0}: ...................................................", client.Client.RemoteEndPoint);
+                
                 var inbound = await CreateInboundConnection(client);
-                if (client.Connected && client.Available > 0 && inbound.IsConnected)
-                {
+                //if (client.Connected && client.Available > 0 && inbound.IsConnected)
+                //{
                     Log.Debug("{0}: Connected", inbound.RemoteEndPoint);
                     await inbound.OpenAsync(ct);
-                }
+                //}
 
                 var context = new MiddlemanContext(inbound);
 
@@ -67,32 +71,51 @@ namespace Middleman.Server.Server
                 int count = 1;
                 do
                 {
-                    var request = await context.InboundConnection.ReadRequestAsync().ConfigureAwait(false);
-
-                    if (request == null)
+                    if (count > 1)
                     {
-                        return;
+                        //Log.Info("{0}:{1}:{2} >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", context.ContextId, context.InboundConnection.RemoteEndPoint.Address.ToString(), context.InboundConnection.RemoteEndPoint.Port.ToString());
+                        Log.Info("{0}:{1}:{2} connection alive <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", context.ContextId, context.InboundConnection.RemoteEndPoint.Address.ToString(), context.InboundConnection.RemoteEndPoint.Port.ToString());
                     }
 
-                    Log.Info("{0}: Got {1} request {3} for {2}", context.InboundConnection.RemoteEndPoint,
-                        request.Method, request.RequestUri, count);
+                    var request = await context.InboundConnection.ReadRequestAsync().ConfigureAwait(true);
 
-                    var response = await _handler.GetResponseAsync(context, request).ConfigureAwait(false);
-                    Log.Info("{0}: Got response from handler ({1})", context.InboundConnection.RemoteEndPoint,
-                        response.StatusCode);
-
-                    await context.InboundConnection.WriteResponseAsync(response).ConfigureAwait(false);
-                    Log.Info("{0}: Wrote response to client", context.InboundConnection.RemoteEndPoint);
-
-                    if (context.OutboundConnection != null && !context.OutboundConnection.IsConnected)
+                    if (request != null)
                     {
+
+                        Log.Info("{0}: Got {1} request {3} for {2}", context.InboundConnection.RemoteEndPoint,
+                            request.Method, request.RequestUri, count);
+
+                        var response = await _handler.GetResponseAsync(context, request).ConfigureAwait(false);
+                        Log.Info("{0}: Got response from handler ({1})", context.InboundConnection.RemoteEndPoint,
+                            response.StatusCode);
+
+                        await context.InboundConnection.WriteResponseAsync(response).ConfigureAwait(false);
+                        Log.Info("{0}: Wrote response to client", context.InboundConnection.RemoteEndPoint);
+
+                        //bool closeConnection = response.Headers.AllKeys.Any(h => h.Equals("Connection", StringComparison.InvariantCultureIgnoreCase) && response.Headers[h].Equals("Close", StringComparison.InvariantCultureIgnoreCase));
+                        //if (context.InboundConnection.MustClose || (context.OutboundConnection != null && !context.OutboundConnection.IsConnected))
+                        if ((context.OutboundConnection != null && !context.OutboundConnection.IsConnected))
+                        {
+                            //if (context.InboundConnection != null)
+                            //{
+                            //    context.InboundConnection.Close();
+                            //}
+
+                            Log.Info("Closing context!");
+                            context.Close();
+                            //context.Dispose();
+                        }
+
+                        count++;
+                    }
+                    else
+                    {
+                        Log.Info("Closing context!");
                         context.Close();
                     }
-
-                    count++;
                 } while (context.InboundConnection.IsConnected);
 
-                Log.Info("{0}:{1}:{2} <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", context.ContextId, context.InboundConnection.RemoteEndPoint.Address.ToString(), context.InboundConnection.RemoteEndPoint.Port.ToString());
+                Log.Info("{0}:{1}:{2} connection closed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", context.ContextId, context.InboundConnection.RemoteEndPoint.Address.ToString(), context.InboundConnection.RemoteEndPoint.Port.ToString());
             }
             catch (Exception exc)
             {
@@ -101,8 +124,10 @@ namespace Middleman.Server.Server
             }
             finally
             {
+                Log.Info("Closing context!");
+            
                 context.Close();
-                context.Dispose();
+                //context.Dispose();
             }
         }
     }

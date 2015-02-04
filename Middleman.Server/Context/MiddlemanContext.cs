@@ -9,14 +9,13 @@ namespace Middleman.Server.Context
 {
     public class MiddlemanContext
     {
-        private readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         private static long _contextCounter;
 
         public MiddlemanContext(InboundConnection client)
         {
             InboundConnection = client;
             ContextId = Interlocked.Increment(ref _contextCounter);
-
             Log.Debug("Creating context ({1}) for connection from {0}.", client.RemoteEndPoint, ContextId);
         }
 
