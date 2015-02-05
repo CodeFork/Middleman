@@ -21,7 +21,7 @@ namespace Middleman.Server.Connection
         protected TcpClient Connection;
         public long ConnectionId;
         protected NetworkStream NetworkStream;
-        //public bool MustClose = false;
+        public bool MustClose = false;
 
         public InboundConnection(TcpClient connection)
         {

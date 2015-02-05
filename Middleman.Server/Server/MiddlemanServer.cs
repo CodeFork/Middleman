@@ -93,8 +93,8 @@ namespace Middleman.Server.Server
                         Log.Info("{0}: Wrote response to client", context.InboundConnection.RemoteEndPoint);
 
                         //bool closeConnection = response.Headers.AllKeys.Any(h => h.Equals("Connection", StringComparison.InvariantCultureIgnoreCase) && response.Headers[h].Equals("Close", StringComparison.InvariantCultureIgnoreCase));
-                        //if (context.InboundConnection.MustClose || (context.OutboundConnection != null && !context.OutboundConnection.IsConnected))
-                        if ((context.OutboundConnection != null && !context.OutboundConnection.IsConnected))
+                        if (context.InboundConnection.MustClose || (context.OutboundConnection != null && !context.OutboundConnection.IsConnected))
+                        //if ((context.OutboundConnection != null && !context.OutboundConnection.IsConnected))
                         {
                             //if (context.InboundConnection != null)
                             //{

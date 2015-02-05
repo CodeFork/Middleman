@@ -40,7 +40,7 @@ namespace Middleman.Server.Request
                     break;
             }
 
-            //conn.MustClose = del.Request.Headers.AllKeys.Any(h => h.Equals("Connection", StringComparison.InvariantCultureIgnoreCase) && del.Request.Headers[h].Equals("Close", StringComparison.InvariantCultureIgnoreCase));
+            conn.MustClose = del.Request.Headers.AllKeys.Any(h => h.Equals("Connection", StringComparison.InvariantCultureIgnoreCase) && del.Request.Headers[h].Equals("Close", StringComparison.InvariantCultureIgnoreCase));
 
             Log.Debug("{0}: RequestParser read enough ({1} bytes)", conn.RemoteEndPoint, readTotal);
             Log.Info("ORIGINAL REQUEST: " + Environment.NewLine + requestString + Environment.NewLine);
