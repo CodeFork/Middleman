@@ -108,7 +108,6 @@ namespace Middleman.Tests
                     //{
                     //    Assert.Fail("No response was received after 5 seconds.");
                     //}
-                    ws.Dispose();
                 }
             }
         }
@@ -146,7 +145,6 @@ namespace Middleman.Tests
                     //    Assert.Fail("No response was received after 5 seconds.");
                     //}
 
-                    ws.Dispose();
                 }
             }
         }
@@ -164,8 +162,6 @@ namespace Middleman.Tests
 
                 var result = ws.SimpleMethod();
                 Assert.IsTrue(result.Contains("Hello World"));
-
-                ws.Dispose();
             }
         }
 
@@ -182,8 +178,6 @@ namespace Middleman.Tests
 
                 var result = ws.SimpleMethod();
                 Assert.IsTrue(result.Contains("Hello World"));
-
-                ws.Dispose();
             }
         }
 
@@ -200,8 +194,6 @@ namespace Middleman.Tests
 
                 var result = ws.SimpleMethod();
                 Assert.IsTrue(result.Contains("Hello World"));
-
-                ws.Dispose();
             }
         }
 
@@ -219,8 +211,6 @@ namespace Middleman.Tests
 
                 var result = ws.SimpleMethod();
                 Assert.IsTrue(result.Contains("Hello World"));
-
-                ws.Dispose();
             }
         }
 
@@ -285,7 +275,6 @@ namespace Middleman.Tests
                     //{
                     //    Assert.Fail("No response was received after 5 seconds.");
                     //}
-                    ws.Dispose();
                 }
             }
         }
@@ -307,8 +296,6 @@ namespace Middleman.Tests
                         Debug.WriteLine("{1}://localhost:{0}/", s.Port, protocol);
 
                         Assert.IsTrue(html.Contains("Hello World"));
-
-
                     }
                 }
             }
@@ -347,7 +334,6 @@ namespace Middleman.Tests
                         //{
                         //    Assert.Fail("No response was received after 5 seconds.");
                         //}
-                        ws.Dispose();
                     }
                 }
             }

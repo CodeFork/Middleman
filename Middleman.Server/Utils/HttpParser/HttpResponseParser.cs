@@ -130,8 +130,9 @@ namespace Middleman.Server.Utils.HttpParser
                 string line;
 
                 while (!string.IsNullOrEmpty(line = sr.ReadLine()))
+                {
                     ParseHeaderLine(line);
-
+                }
                 _handler.OnHeadersEnd();
 
                 _hasEntityData = _contentLength > 0 || _chunkedTransfer;
@@ -141,7 +142,9 @@ namespace Middleman.Server.Utils.HttpParser
         private void ParseStatusLine(string line)
         {
             if (line == null)
+            {
                 throw new ArgumentNullException("line");
+            }
 
             var m = StatusLineRegex.Match(line);
 
