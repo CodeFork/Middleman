@@ -54,7 +54,12 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>COPY /Y /B "$(TargetDir)$(TargetFileName)" "$(SolutionDir)dist\"
-COPY /Y /B "$(TargetDir)$(TargetFileName).config" "$(SolutionDir)dist\"</PostBuildEvent>
+COPY /Y /B "$(TargetDir)$(TargetFileName).config" "$(SolutionDir)dist\"
+
+powershell.exe -file "$(SolutionDir)zip_dist.ps1" $(SolutionDir)
+
+rd /S /Q "$(SolutionDir)dist\"
+</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

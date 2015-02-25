@@ -88,14 +88,13 @@
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <PropertyGroup>
     <PostBuildEvent>md "$(SolutionDir)dist\"
-del "$(SolutionDir)dist\*.dll"
-del "$(SolutionDir)dist\*.config"
-del "$(SolutionDir)dist\*.exe"
-del "$(SolutionDir)dist\*.log"
-del "$(SolutionDir)dist\*.installlog"
 
 COPY /Y /B "$(TargetDir)*.dll" "$(SolutionDir)dist\"
 </PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>rd /S /Q "$(SolutionDir)dist\"
+</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
