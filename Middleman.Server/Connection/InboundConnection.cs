@@ -148,7 +148,8 @@ namespace Middleman.Server.Connection
                     (read = await response.ResponseBody.ReadAsync(buffer, 0, buffer.Length, ct).ConfigureAwait(false)) >
                     0)
                 {
-                    responseBody += HeaderEncoding.GetString(buffer.Where(x => x != 0).ToArray(), 0, read);
+                    var newBytes = buffer.Where(x => x != 0).ToArray();
+                    responseBody += HeaderEncoding.GetString(newBytes, 0, Math.Min(newBytes.Length, read));
 
                     written += read;
                     Log.Debug("{0}: Read {1:N0} bytes from response body", RemoteEndPoint, read);

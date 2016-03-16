@@ -25,7 +25,8 @@ namespace Middleman.Server.Response
             var responseString = "";
             while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
-                responseString += Encoding.ASCII.GetString(buffer.Where(x => x != 0).ToArray(), 0, read);
+                var newBytes = buffer.Where(x => x != 0).ToArray();
+                responseString += Encoding.ASCII.GetString(newBytes, 0, Math.Min(newBytes.Length, read));
 
                 parser.Execute(buffer, 0, read);
 

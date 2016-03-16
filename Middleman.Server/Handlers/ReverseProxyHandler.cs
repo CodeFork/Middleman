@@ -67,6 +67,27 @@ namespace Middleman.Server.Handlers
                 }
             }
 
+
+            if (request.Headers.AllKeys.Any(
+    h => h.Equals("Accept-Encoding", StringComparison.InvariantCultureIgnoreCase) && (request.Headers[h].Contains("gzip") || request.Headers[h].Contains("deflate") || request.Headers[h].Contains("sdch"))))
+            {
+                string acceptEncodingHeader = (request.Headers["Accept-Encoding"] ?? "").Trim();
+
+                Log.Debug("Disabled gzip compression as it is not currently supported.");
+
+                if (acceptEncodingHeader.Length > 0)
+                {
+                    acceptEncodingHeader = acceptEncodingHeader.Replace("gzip", "gzip;q=0").Replace("deflate", "deflate;q=0").Replace("sdch", "sdch;q=0").Replace(";;", ";");
+                    request.Headers["Accept-Encoding"] = acceptEncodingHeader;
+                }
+                else
+                {
+                    acceptEncodingHeader = "gzip;q=0,deflate;q=0,sdch;q=0";
+                    request.Headers["Accept-Encoding"] = acceptEncodingHeader;
+                }
+            }
+
+
             if (RewriteHost)
             {
                 request.Headers["Host"] = _backendUri.Host +
